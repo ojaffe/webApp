@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Index</title>
+    </head>
+
+    <body>
+
+        <noscript><h1 style="color: red;">Enable Javascript to use this application.</h1></noscript>
+
+        <!-- Scripts/stylesheets -->
+        {% load static %}
+        <script type="text/javascript" src="{% static 'js/jquery.slim.min.js' %}"></script>
+
+        <!-- Bootstrap 4  and overwrite -->
+        <script type="text/javascript" src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.bundle.min.js"></script>
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+        <link rel="stylesheet" href="{% static 'css/page-css-override.css' %}">
+
+        {% include 'header.html' %}
+
+        <!-- Page Content -->
+        <div class="container">
+            <h1 class="mt-4">About</h1>
+            <p>
+                This application was developed to create a simpler, more customised application to create and test experiments
+                on (compared to existing websites such as Google Forms). Experiments comparing images can be run here, more
+                variations may be added in the future. Functionality includes:
+            </p>
+            <ul>
+                <li>
+                    Creating experiments, with the ability to modify the experiment through customisable options
+                </li>
+                <li>
+                    Letting users take such experiments
+                </li>
+                <li>
+                    Viewing the results of such experiments and exporting as .csv
+                </li>
+                <li>
+                    Basic account system to prevent unregistered users from creating/modifying experiments
+                </li>
+            </ul>
+            <p>
+                Registered users can create experiments for a given set of images. These images must include a "base" set
+                of images, and another set of images for algorithms applied to the base set. There currently exist types
+                of experiments to compare images:
+            </p>
+            <ul>
+                <li>
+                    Pairwise Comparison - Choose which image is best
+                </li>
+                <li>
+                    Ranking - Organise image set in order of best to worst
+                </li>
+                <li>
+                    Rating - Assign value to each image in set
+                </li>
+            </ul>
+            <p>
+                Results are stored in a [FOR NOW] SQLite database, admins can view such results in browser or choose to
+                export them as a .csv file.
+            </p>
+
+        </div>
+
+    </body>
+</html>

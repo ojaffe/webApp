@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+      <meta charset="UTF-8">
+      <title>Index</title>
+  </head>
+
+  <body>
+
+    <noscript><h1 style="color: red;">Enable Javascript to use this application.</h1></noscript>
+
+      <!-- Scripts/stylesheets -->
+      {% load static %}
+      <script type="text/javascript" src="{% static 'js/jquery.slim.min.js' %}"></script>
+
+      <!-- Bootstrap 4  and overwrite -->
+      <script type="text/javascript" src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.bundle.min.js"></script>
+      <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+      <link rel="stylesheet" href="{% static 'css/page-css-override.css' %}">
+
+      {% include 'header.html' %}
+
+      <!-- Page Content -->
+      <div class="container">
+
+          <h1 class="mt-4">{{ experiment.experiment_title }}</h1>
+
+          {{ experiment.experiment_description }}
+
+          <br><br>
+
+          <label for="cb1">
+              <input type="checkbox" id="cb1" class="cb">
+              I confirm that I have read and understand the information sheet provided for the above study. I have had the
+              opportunity to consider the information, as questions and have had these answered satisfactorily.
+          </label>
+          <br>
+
+          <label for="cb2">
+              <input type="checkbox" id="cb2" class="cb">
+              I understand that my participation is voluntary and that I am free to withdraw at any time without giving
+              any reason.
+          </label>
+          <br>
+
+          <label for="cb3">
+              <input type="checkbox" id="cb3" class="cb">
+              I confirm that I am 18 years or above.
+          </label>
+          <br>
+
+          <label for="cb4">
+              <input type="checkbox" id="cb4" class="cb">
+              I agree to take part in the above study.
+          </label>
+
+          <form method="post", enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <button type="submit" id="sendNewSms" disabled>Begin test</button>
+          </form>
+
+
+          <script>
+              // Only enabled button when all checkboxes have been checked by the user
+              var sendbtn = document.getElementById('sendNewSms');
+
+              $(".cb").change(function(){
+                  if ($('.cb:checked').length == $('.cb').length) {
+                     sendbtn.disabled = false;
+                  } else {
+                     sendbtn.disabled = true;
+                  }
+              });
+          </script>
+
+      </div>
+
+  </body>
+</html>
+
+

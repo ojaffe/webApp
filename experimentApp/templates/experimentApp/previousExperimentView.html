@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Index</title>
+    </head>
+
+    <body>
+
+        <noscript><h1 style="color: red;">Enable Javascript to use this application.</h1></noscript>
+
+        <!-- Scripts/stylesheets -->
+        {% load static %}
+        <script type="text/javascript" src="{% static 'js/jquery.slim.min.js' %}"></script>
+
+        <!-- Bootstrap 4  and overwrite -->
+        <script type="text/javascript" src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.bundle.min.js"></script>
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+        <link rel="stylesheet" href="{% static 'css/page-css-override.css' %}">
+
+        {% include 'header.html' %}
+
+        <!-- Page Content -->
+        <div class="container">
+            <h1 class="mt-4">All Previous Experiments</h1>
+
+            {% if experiment_dict %}
+                <table class="mt-4">
+                    {% for experiment_index, experiment_details in experiment_dict.items %}
+                        <tr>
+
+                            <!-- Experiment Title -->
+                            <td style="padding: 0px 40px 30px 0px;">
+                                <a href="{% url 'experimentApp:experimentDetail' experiment_details.slug %}">
+                                    <h3>{{ experiment_details.title }}</h3>
+                                </a>
+                            </td>
+
+                            <td style="padding: 0px 40px 20px 0px;">
+                                <!-- Experiment type -->
+                                {% if experiment_details.question_type == 'pairwise-comparison' %}
+                                    Pairwise Comparison
+                                {% else %}
+                                    {% if experiment_details.question_type == 'RANKING' %}
+                                        Ranking
+                                    {% else %}
+                                        {% if experiment_details.question_type == 'RATING' %}
+                                            Rating
+                                        {% endif %}
+                                    {% endif %}
+                                {% endif %}
+
+                                <!-- Creation date -->
+                                <br>
+                                {{ experiment_details.pub_date }}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </table>
+            {% else %}
+                <p>No experiments are available.</p>
+            {% endif %}
+
+        </div>
+    </body>
+</html>
+
+

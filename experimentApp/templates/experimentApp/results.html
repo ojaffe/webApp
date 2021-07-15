@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Index</title>
+    </head>
+
+    <body>
+
+        <noscript><h1 style="color: red;">Enable Javascript to use this application.</h1></noscript>
+
+        <!-- Scripts/stylesheets -->
+        {% load static %}
+        <script type="text/javascript" src="{% static 'js/jquery.slim.min.js' %}"></script>
+
+        <!-- Bootstrap 4  and overwrite -->
+        <script type="text/javascript" src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.bundle.min.js"></script>
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+        <link rel="stylesheet" href="{% static 'css/page-css-override.css' %}">
+
+        {% include 'header.html' %}
+
+        <div class="container">
+
+            <h1 class="mt-4">{{ experiment_title }} Results</h1>
+
+            <!-- Results for Pairwise Comparison experiment -->
+            {% if type == 'pairwise-comparison' %}
+                <h2 class="mt-4">Total votes per algorithm</h2>
+
+                {% for algorithm, votes in total_votes_dict.items %}
+                    <li>{{ votes }} - {{ algorithm }}</li>
+                {% endfor %}
+
+                <h2 class="mt-4">Breakdown per question</h2>
+                <table>
+                    <tr>
+                        {% for answer_name in question_name_list %}
+                            <th>{{ answer_name }}</th>
+                        {% endfor %}
+                    </tr>
+
+                    {% for user_id, answers in user_dict.items %}
+                        <tr>
+                            {% for answer_name, choice in answers.items %}
+                                <td>{{ choice }}</td>
+                            {% endfor %}
+                        </tr>
+                  {% endfor %}
+                </table>
+            {% endif %}
+
+            <!-- Results for Ranking experiment -->
+            {% if type == 'RANKING' %}
+                <h2 class="mt-4">Breakdown per question</h2>
+
+                <table>
+                    <tr>
+                        {% for answer_name in question_name_list %}
+                            <th>{{ answer_name }}</th>
+                        {% endfor %}
+                    </tr>
+
+                    {% for user_id, answers in user_dict.items %}
+                        <tr>
+                            {% for answer_name, choice in answers.items %}
+                                <td>{{ choice }}</td>
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
+                </table>
+            {% endif %}
+
+            <!-- Results for Rating experiment -->
+            {% if type == 'RATING' %}
+                Note, for this type of experiment the last two columns of the downloaded .csv will contain the minimum and maximum
+                possible value.
+                <h2 class="mt-4">Breakdown per question</h2>
+
+                <table>
+                    <tr>
+                        {% for answer_name in question_name_list %}
+                            <th>{{ answer_name }}</th>
+                        {% endfor %}
+                    </tr>
+
+                    {% for user_id, answers in user_dict.items %}
+                        <tr>
+                            {% for answer_name, choice in answers.items %}
+                                <td>{{ choice }}</td>
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
+                </table>
+            {% endif %}
+
+            <br>
+            <form action="{% url 'experimentApp:resultsDownload' experiment_slug %}">
+                <button type="submit">Download as .csv</button>
+            </form>
+
+        </div>
+
+    </body>
+</html>
+
+

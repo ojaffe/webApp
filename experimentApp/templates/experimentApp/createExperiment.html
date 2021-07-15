@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>My test page</title>
+    </head>
+    <body>
+
+        <noscript><h1 style="color: red;">Enable Javascript to use this application.</h1></noscript>
+
+        {% load widget_tweaks %}
+
+        <!-- Scripts/stylesheets -->
+        {% load static %}
+        <script type="text/javascript" src="{% static 'js/jquery.slim.min.js' %}"></script>
+
+        <!-- Bootstrap 4  and overwrite -->
+        <script type="text/javascript" src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.bundle.min.js"></script>
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+        <link rel="stylesheet" href="{% static 'css/page-css-override.css' %}">
+
+
+        {% include 'header.html' %}
+
+        <!-- Page Content -->
+        <div class="container">
+
+            <h1 class="mt-4">Create Experiment</h1>
+
+            {% if error_message %}
+                <div class="mb-4">
+                    <b style="color:red;">{{ error_message }}</b>
+                </div>
+            {% endif %}
+
+            <form id="defaultexperiment_form_container" method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+
+                <!-- Experiment Form -->
+                {% for field in experimentForm.visible_fields %}
+                    <div class="form-group">
+                        {{ field.label_tag }}
+                        {% render_field field class="form-control" %}
+                        {% if field.help_text %}
+                            <small class="form-text text-muted">{{ field.help_text }}</small>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+
+
+                <!-- Images -->
+                <h4 class="mt-5">Upload Images</h4>
+                Click the button below to upload the images which will be used in the experiment. Filenames must be in the form
+                [Prefix]_[Suffix] where [Prefix] is the name of the image and [Suffix] is the name of the algorithm applied.
+                The file structure must be in one of two forms to be accepted:
+                <div class="mt-1">
+                    <ul>
+                        <li>
+                            <b>By filenames</b> - upload files
+                        </li>
+                        <li>
+                            <b>By directories</b> - upload each directory individually, each of which contains an image set
+                        </li>
+                    </ul>
+                </div>
+
+                <table id="uploadTable">
+                        <tr>
+                            <td style="padding: 0px 0px 0px 20px;">
+                                <input type="radio" id="uploadByName" name="uploadChoice" value="file" onclick="selectFileUp();" checked>
+                                <label for="uploadByName"><h4 class="mt-4">Upload by file name</h4></label>
+                            </td>
+                            <td style="padding: 0px 0px 0px 80px">
+                                <input type="file" name="uploadFileName" id="uploadByFileName" multiple>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 0px 0px 0px 20px;">
+                                <input type="radio" id="uploadByDir" name="uploadChoice" value="dir" onclick="selectDirUp();">
+                                <label for="uploadByDir"><h4 class="mt-4">Upload by directories</h4></label>
+                            </td>
+                            <td style="padding: 0px 0px 0px 80px">
+                                <input type="file" name="uploadDir0" class="dir_upload" webkitdirectory mozdirectory>
+
+                                <button type="button" id="addDirButton" class="dir_upload" onclick="appendDirRow();">Add Directory</button>
+                            </td>
+                        </tr>
+                </table>
+
+                <script>
+                    function selectFileUp() {
+                        document.querySelector("#uploadByFileName").disabled = false;
+                        dir_uploads = document.getElementsByClassName("dir_upload");
+                        for(var i = 0; i < dir_uploads.length; i++) {
+                            dir_uploads[i].disabled = true;
+                        }
+                    }
+
+                    function selectDirUp() {
+                        document.querySelector("#uploadByFileName").disabled = true;
+                        dir_uploads = document.getElementsByClassName("dir_upload");
+                        for(var i = 0; i < dir_uploads.length; i++) {
+                            dir_uploads[i].disabled = false;
+                        }
+                    }
+                    selectFileUp();
+
+                    // Append new row for uploading a new directory on click
+                    function appendDirRow() {
+                         upload_table = document.querySelector("#uploadTable");
+                         no_rows = upload_table.rows.length;
+
+
+                         // Add new row with necessary cells
+                         const row = document.querySelector("#uploadTable").insertRow(no_rows);
+                         const cell1 = row.insertCell(0);
+                         cell1.style.padding = "50px 0px 0px 20px";
+                         const cell2 = row.insertCell(1);
+                         cell2.style.padding = "0px 0px 0px 80px";
+
+                         // Insert new elements into table cell
+                         var new_upload_input = document.createElement("input");
+                         new_upload_input.type = "file";
+                         new_upload_input.multiple = true;
+                         new_upload_input.webkitdirectory = true;
+                         new_upload_input.mozdirectory = true;
+                         new_upload_input.classList.add("dir_upload");
+                         new_upload_input.name = "uploadDir" + (upload_table.rows.length - 2).toString(); // Minus two as we don't count the first row (other option) and it starts counting from 1
+                         cell2.appendChild(new_upload_input);
+
+                         // Add delete button to new row
+                         var new_delete_button = document.createElement("button");
+                         new_delete_button.innerHTML = "Delete Directory Upload";
+                         new_delete_button.type = "button";
+                         new_delete_button.rowIndex = upload_table.rows.length - 1; // Reference to this buttons row index, minus one as it starts counting from 0
+                         new_delete_button.classList.add("mr-4");
+                         new_delete_button.classList.add("dir_upload");
+                         new_delete_button.setAttribute('onclick','deleteDirRow(this);');
+                         cell2.appendChild(new_delete_button);
+
+                         // Remove add button from old row, add to new
+                         const button = document.querySelector("#addDirButton");
+                         button.remove();
+                         cell2.appendChild(button);
+
+                         // Add references from row to upload and delete buttons
+                         row.upload_button = new_upload_input;
+                         row.delete_button = new_delete_button;
+                    }
+
+                    function deleteDirRow(e) {
+                        // Move add button to row above if deleting last row
+                        if(e.rowIndex == document.querySelector("#uploadTable").rows.length - 1) {
+                            const button = document.querySelector("#addDirButton");
+                            button.remove();
+                            document.querySelector("#uploadTable").rows[e.rowIndex - 1].cells[1].appendChild(button);
+                        }
+
+                        // Delete row
+                        document.querySelector("#uploadTable").deleteRow(e.rowIndex);
+
+                        // Update names and row references
+                        rows = document.querySelector("#uploadTable").rows;
+                        for(var i = 2; i < rows.length; i++) {
+                            rows[i].upload_button.name = "uploadDir" + (i - 1).toString();
+                            rows[i].delete_button.rowIndex = i; // Offset by 1, we don't want to delete other option
+                        }
+                    }
+                </script>
+
+
+                <!-- Questions -->
+                <h2 class="mt-5">Type of Questions</h2>
+                Choose one of the below style of questions, and modify the options to your choosing.
+
+                <table>
+
+                    <!-- Pairwise comparison -->
+                    <tr>
+                        <td style="padding: 0px 40px 80px 20px;">
+                            <input type="radio" name="questionType" id="rad1" onclick="selectPC();" value="pc">
+                            <label for="rad1"><h4 class="mt-4">Pairwise comparison</h4></label>
+                        </td>
+                        <td style="padding: 0px 30px 0px 0px;">
+                            <div id="pcOption2">
+                                <ul>
+                                    <input type="radio" id="pcSameAlgor" name="pcAlgorChoice" value="pcSameAlgor" checked>
+                                    <label for="pcSameAlgor">Compare all images from the same image</label>
+                                </ul>
+                                <ul>
+                                    <input type="radio" id="pcNC3" name="pcAlgorChoice" value="pcNC3">
+                                    <label for="pcNC3">Perform NC2 comparisons</label>
+                                </ul>
+                            </div>
+                        </td>
+                        <td style="padding: 0px 0px 0px 0px;">
+                            <div id="pcOption">
+                                <input type="checkbox" id="pc4" name="pcGround">
+                                <label for="pc4">Compare images from the same algorithm to the ground truth</label>
+
+                                <br>
+                                <input type="checkbox" id="pc3" name="pcRandomise" disabled>
+                                <label for="pc3">Randomise the ordering of the comparisons</label>
+
+                                <br>
+                                <input type="checkbox" id="pc5" name="pcCompareWithSame">
+                                <label for="pc5">Add in comparisons with the same image 5% of the time</label><br>
+                            </div>
+                        </td>
+                    </tr>
+
+
+                    <!-- Ranking -->
+                    <tr>
+                        <td style="padding: 0px 40px 50px 20px;">
+                            <input type="radio" name="questionType" id="radRanking" onclick="selectRK();" value="rk">
+                            <label for="radRanking"><h4 class="mt-4">Ranking</h4></label>
+                        </td>
+                        <td>
+
+                        </td>
+                        <td style="padding: 30px 0px 0px 0px; vertical-align:top;">
+                            <div id="rkOption">
+                                <input type="checkbox" id="rk1" name="rkGround">
+                                <label for="rk1">Compare images from the same algorithm to the ground truth</label>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Rating -->
+                    <td style="padding: 0px 40px 50px 20px;">
+                        <input type="radio" name="questionType" id="radRating" onclick="selectRT();" value="rt">
+                        <label for="radRating"><h4 class="mt-4">Rating</h4></label>
+                    </td>
+                    <td>
+
+                    </td>
+                    <td style="padding: 30px 0px 0px 0px; vertical-align:top">
+                        <div id="rtOption">
+                            <input type="checkbox" id="rt1" name="rtGround">
+                            <label for="rt1">Compare images from the same algorithm to the ground truth</label>
+
+                            <br>
+
+                            <select name="select_choice" id="select_choice">
+                                <option disabled selected value> -- Select an option -- </option>
+                                <option value="INPUT_FIELD">Input field</option>
+                                <option value="RADIO">Radio</option>
+                                <option value="SLIDER">Slider</option>
+                            </select>
+                            <label for="select_choice">Select how the user should answer a question</label>
+
+                            <br>
+                            <input id="rt5" name="rtLowerBound" value="0">
+                            <label for="rt5">Lower bound</label>
+                            <br>
+                            <input id="rt6" name="rtUpperBound" value="100">
+                            <label for="rt6">Upper bound</label>
+                        </div>
+                    </td>
+                </table>
+
+
+                <!-- Background+foreground text choice -->
+                <h2 class="mt-5">Custom Background and Text Colour</h2>
+                You can choose the colour of the background and text during the experiment. If not chosen, the experiment
+                will use the default colours of #ffffff for the background (white) and #555 for text.
+
+                <table>
+                    <tr>
+                        <td style="padding: 0px 40px 80px 20px;">
+                            <input type="checkbox" id="customColours" name="customColours" onclick="toggleCL();">
+                            <label for="customColours"><h4 class="mt-4">Custom Colours</h4></label>
+                        </td>
+                        <td style="padding: 0px 0px 0px 100px;">
+                            <div id="colToggle">
+                                <ul>
+                                    <label for="textColourPicker">Choose text colour</label>
+                                    <input type="color" id="textColourPicker" name="textColourPicker" value="#858585">
+                                </ul>
+                                <ul>
+                                    <label for="backgroundColourPicker">Choose background colour</label>
+                                    <input type="color" id="backgroundColourPicker" name="backgroundColourPicker" value="#ffffff">
+                                </ul>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+
+
+                <!-- Refresher Image Choice -->
+                <h2 class="mt-5">Refresher Image</h2>
+                You can choose to include a "refresher" image, which will briefly be present between questions. If you
+                choose to include it you can customise the time it shows for, you can choose its colour or upload
+                a specific image to be shown.
+
+                <table>
+                    <tr>
+                        <td style="padding: 0px 40px 90px 20px;">
+                            <input type="checkbox" id="radRef" name="radRef" onclick="toggleRF();">
+                            <label for="radRef"><h4 class="mt-4">Include Refresher Image</h4></label>
+                        </td>
+                        <td style="padding: 45px 0px 0px 0px; vertical-align:top;">
+                            <div id="rfToggle" style="text-align: top;">
+                                <ul>
+                                    <input type="radio" id="radRefCol" name="refChoice" value="col" checked onclick="selectCol();">
+                                    <label for="radRefCol">Show colour on screen</label>
+                                </ul>
+                                <ul>
+                                    <input type="radio" id="radRefImage" name="refChoice" value="im" onclick="selectIm();">
+                                    <label for="radRefImage">Show custom image on screen</label>
+                                </ul>
+                            </div>
+                        </td>
+                        <td style="padding: 45px 0px 0px 40px; vertical-align:top;">
+                            <div id="rfToggle2">
+                                <input id="timeVal" name="timeVal" value="1000">
+                                <label for="timeVal">Choose time to show (ms)</label>
+
+                                <br>
+                                <br>
+
+                                <div id="rfCol">
+                                    <label for="colourpicker">Choose colour</label>
+                                    <input type="color" id="colourpicker" name="colourpicker" value="#b5b5b5">
+                                </div>
+
+                                <br>
+
+                                <div id="rfImage">
+                                    <label for="refImage">Choose custom image</label>
+                                    <input type="file" id="refImage" name="refImage" value="Choose custom image">
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+
+
+                <button type="submit" class="btn btn-outline-primary btn-lg mt-5" >Create Experiment</button>
+
+            </form>
+        </div>
+
+        <script>
+            // Handles enabling/disabling options depending on what the user has chosen
+            document.querySelector("#rad1").checked = true;
+            selectPC();
+
+            function selectPC() {
+                $('#pcOption :input').attr('disabled', false);
+                $('#pcOption2 :input').attr('disabled', false);
+                $('#rkOption :input').attr('disabled', true);
+                $('#rtOption :input').attr('disabled', true);
+            }
+            function selectRK() {
+                $('#pcOption :input').attr('disabled', true);
+                $('#pcOption2 :input').attr('disabled', true);
+                $('#rkOption :input').attr('disabled', false);
+                $('#rtOption :input').attr('disabled', true);
+            }
+            function selectRT() {
+                $('#pcOption :input').attr('disabled', true);
+                $('#pcOption2 :input').attr('disabled', true);
+                $('#rkOption :input').attr('disabled', true);
+                $('#rtOption :input').attr('disabled', false);
+            }
+
+            // Toggle refresher options, and set disabled by default
+            function toggleRF() {
+                if ($('#radRef').is(':checked')) {
+                    $('#rfToggle :input').removeAttr('disabled');
+                    document.getElementById('timeVal').disabled = false;
+
+                    if ($('#radRefCol').is(':checked')) {
+                        selectCol();
+                    } else {
+                        selectIm();
+                    }
+                    } else {
+                        $('#rfToggle :input').attr('disabled', true);
+                        $('#rfToggle2 :input').attr('disabled', true);
+                }
+            }
+
+            // Enable colour rf image if user chooses
+            function selectCol() {
+                $('#rfCol :input').removeAttr('disabled');
+                $('#rfImage :input').attr('disabled', true);
+            }
+
+            // Enable custom rf image
+            function selectIm() {
+                $('#rfCol :input').attr('disabled', true);
+                $('#rfImage :input').removeAttr('disabled');
+            }
+
+            // Set default refresher options
+            $('#rfToggle :input').attr('disabled', true);
+            $('#rfToggle2 :input').attr('disabled', true);
+            selectCol();
+
+
+            // Toggle custom colour options
+            function toggleCL() {
+                if ($('#customColours').is(':checked')) {
+                    $('#colToggle :input').attr('disabled', false);
+                } else {
+                    $('#colToggle :input').attr('disabled', true);
+                }
+            }
+
+            // Set default colour options
+            toggleCL();
+        </script>
+    </body>
+</html>
+
+

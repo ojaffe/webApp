@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Index</title>
+    </head>
+
+    <body>
+
+        <noscript><h1 style="color: red;">Enable Javascript to use this application.</h1></noscript>
+
+        <!-- Scripts/stylesheets -->
+        {% load static %}
+        <script type="text/javascript" src="{% static 'js/jquery.slim.min.js' %}"></script>
+
+        <!-- Bootstrap 4  and overwrite -->
+        <script type="text/javascript" src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.bundle.min.js"></script>
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+        <link rel="stylesheet" href="{% static 'css/page-css-override.css' %}">
+
+        {% include 'header.html' %}
+
+        <!-- Page Content -->
+        <div class="container">
+            <h1 class="mt-4">Home</h1>
+
+            <p>Welcome to [name]'s homepage. Use the navigation bar in the top right to navigate through this website if you are stuck.</p>
+
+            {% if user.is_authenticated %}
+
+                <p>To access previous experiments or create a new one, click one of the links found below.</p>
+
+                <p>
+                    For information about this application, view the <a href="{% url 'experimentApp:helpView' %}">Help Page</a>
+                    which can also be found on the navigation bar. If you encounter a problem whilst using this application,
+                    or would like to give feedback, please contact us at <a  href="">this</a> page.
+                </p>
+
+                <h2>Most Recent Experiments</h2>
+                {% if experiment_dict %}
+                    <ul>
+                    {% for experiment_index, experiment_details in experiment_dict.items %}
+                        <li><a href="{% url 'experimentApp:experimentConsent' experiment_details.slug %}">{{ experiment_details.title }}</a></li>
+                    {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>No experiments are available.</p>
+                {% endif %}
+
+                <h2 class="mt-4">Create Experiment</h2>
+                <a href="{% url 'experimentApp:createExperiment' %}">Make Experiment</a>
+
+                <h2 class="mt-4">View All Experiments</h2>
+                <a href="{% url 'experimentApp:previousExperimentView' %}">View Previous Experiments</a>
+
+            {% else %}
+                <p>If you are taking part in an experiment, please type in the URL in the above search bar.</p>
+
+                <p>If you are accessing results or creating an experiment, please login <a href="/login/">here</a>
+                   or click the login button on the top right of your page.</p>
+            {% endif %}
+
+        </div>
+
+    </body>
+</html>
+
+

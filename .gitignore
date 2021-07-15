@@ -1,0 +1,13 @@
+*.log
+*.pot
+*.pyc
+__pycache__
+
+# Django #
+db.sqlite3
+webapp/settings.py
+media/choiceImages
+media/refresherImages
+
+# PyCharm #
+.idea/

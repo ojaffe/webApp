@@ -1,0 +1,58 @@
+.container {
+    width:100%;
+    padding-right:15px;
+    padding-left:15px;
+    margin-right:auto;
+    margin-left:auto
+}
+@media (min-width:576px) {
+    .container {
+        max-width:540px
+    }
+}
+@media (min-width:768px) {
+    .container {
+        max-width:720px
+    }
+}
+@media (min-width:992px) {
+    .container {
+        max-width:960px
+    }
+}
+@media (min-width:1200px) {
+    .container {
+        max-width:1200px
+    }
+}
+
+@media (min-width:1400px) {
+    .container {
+        max-width:1400px
+    }
+}
+
+@media (min-width:2000px) {
+    .container {
+        max-width:2000px
+    }
+}
+
+h1,
+h2,
+strong {
+  color: #333;
+}
+
+@import 'https://fonts.googleapis.com/css?family=Roboto:300,400,500';
+
+body {
+  color: #555;
+  font-family: "Roboto", "Helvetica", "Arial", sans-serif;
+  padding-bottom: 100px;
+}
+
+.buttonText {
+  display:block;
+  padding:.5rem 1rem
+}

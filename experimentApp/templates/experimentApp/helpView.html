@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Help</title>
+    </head>
+
+    <body>
+
+        <noscript><h1 style="color: red;">Enable Javascript to use this application.</h1></noscript>
+
+        <!-- Scripts/stylesheets -->
+        {% load static %}
+        <script type="text/javascript" src="{% static 'js/jquery.slim.min.js' %}"></script>
+
+        <!-- Bootstrap 4  and overwrite -->
+        <script type="text/javascript" src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.bundle.min.js"></script>
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+        <link rel="stylesheet" href="{% static 'css/page-css-override.css' %}">
+
+        {% include 'header.html' %}
+
+        <!-- Page Content -->
+        <div class="container">
+            <h1 class="mt-4">Help</h1>
+
+            This page contains documentation about this application. If you have any further questions, please <a href="">contact us</a>.
+
+            <h3 class="mt-5" style="color: #424a8c">Quick Start</h3>
+            <p>Follow these steps to quickly set up an experiment:</p>
+            <ul>
+                <li>
+                    Create an experiment, selecting the appropriate options and writing its description in a lot of detail
+                </li>
+                <li>
+                    Send all participants the link to take the experiment, this link is given after creating an experiment,
+                    on the <i>Experiment Detail</i> page
+                </li>
+                <li>
+                    Download the results once all participants have finished, results can be found on the
+                    <i>Experiment Detail</i> page
+                </li>
+            </ul>
+
+            <h3 class="mt-5">Account System</h3>
+            <p>Some functionality of this application is restricted to users who have an account, such as creating an
+            experiment or viewing results. In this documentation, processes that require an account will be
+            denoted with "(A)" in their title. If you believe you require an account but do not have one, please
+                <a href="">contact us</a>.</p>
+
+            <p>Users without an account can participate in experiments.</p>
+
+            <h3 class="mt-5">Creating an Experiment (A)</h3>
+            <p>All experiments require a title and description. These will be
+            presented to the participant when they start the experiment, so provide necessary information about the
+            experiment that the participant will need to know. Note that participants are told how to answer each question.
+            The title of an experiment will also be used by admins to identify an experiment from others when viewing,
+                all experiments, so choose their name carefully.</p>
+
+            <p>Images are required for every experiment. <b style="color: red">TODO</b></p>
+            <p>Images must have consistent naming and resolution <b style="color: red">TODO</b></p>
+
+            <p>Currently, three different types of questions are supported for a given set of images:</p>
+
+            <ul>
+                <li>
+                    <b>Pairwise Comparison</b> - Select an image
+                </li>
+                <li>
+                    <b>Ranking</b> - Order the images
+                </li>
+                <li>
+                    <b>Rating</b> - Give a rating (number, choice out of five e.g.) to each image
+                </li>
+            </ul>
+
+            <p>Using one of the above you can have participants judge images by some metric, for example simply having
+            the participants judge them by how good they look. Admins have the option to customise these questions,
+                below we will explain each questions options.</p>
+
+            <p>Selecting ground truth will present the original image to the participant, and will remove it from being
+            an option to answer.</p>
+
+            <p><b>Pairwise Comparison</b></p>
+            <ul>
+                <li>
+                    Ground Truth (see above)
+                </li>
+                <li>
+                    Compare all images from the same image - All images with the same original image (different algorithms
+                    applied to some image) will be compared in each question
+                </li>
+                <li>
+                    Perform NC2 comparisons - There will be a question for each combination in the set of images with
+                    the same original image, so every image in such set will be compared to every other
+                </li>
+                <li>
+                    Randomise the ordering of the comparisons - The ordering of questions, and the NC2 comparisons if
+                    chosen, will be randomised
+                </li>
+                <li>
+                    Add in comparisons with the same image 5% of the time - <b style="color: red">TODO</b>
+                </li>
+            </ul>
+
+            <p><b>Ranking</b></p>
+            <ul>
+                <li>
+                    Ground Truth (see above)
+                </li>
+            </ul>
+
+            <p><b>Rating</b></p>
+            <ul>
+                <li>
+                    Ground Truth (see above)
+                </li>
+                <li>
+                    Select how the user should answer a question - The admin can choose how the participant will select
+                    their rating, can select from input field where they type in the rating, radio chose where they select
+                    the rating from a list of choices, or a slider which they can drag.
+                </li>
+                <li>
+                    Lower Bound - Smallest possible value the participant can choose
+                </li>
+                <li>
+                    Upper Bound - Largest possible value the participant can choose
+                </li>
+            </ul>
+
+            <p>Admins can also change the colour of the text and background that will be displayed the the
+            participant during the test.</p>
+
+            <p>Admins also have the option to include a "refresher image". This will cover the entire display and be
+            shown for a period of time between questions before disappearing. If selected, admins can choose whether
+            to have a specific colour be shown, or a specific image, as well as the time (in milliseconds) that it
+                will be shown for.</p>
+
+            <p>Once the admin has entered valid options and clicked the create button, they will be redirected to
+            a link containing information about the experiment, which we will explain in the "Experiment Details (A)"
+                section below.</p>
+
+            <h3 class="mt-5">Viewing All Previous Experiments (A)</h3>
+            <p>Admins can view all experiments by clicking the respective link on the <a href="{% url 'experimentApp:index' %}">home page.</a>
+            Here, they will be presented with a list of all previous experiments, sorted such that the most recently
+            created are at the top. Each experiment is identified by its title, its type of questions (e.g. ranking) and
+                the date and time it was created.</p>
+
+            <p>Clicking any of the experiment titles will navigate the admin to a page which allows them to manage
+                such experiment, more is explained in the below "Experiment Details (A)" section.</p>
+
+
+            <h3 class="mt-5">Experiment Details (A)</h3>
+            <p>This page holds details about an experiment such as:</p>
+            <ul>
+                <li>
+                    URL of page where participants can take experiment
+                </li>
+                <li>
+                    Results
+                </li>
+                <li>
+                    Title+description
+                </li>
+            </ul>
+
+            <p>There also exists the option to access an experiments results. Either the admin can download the .csv file,
+            or they can choose to go to another page to view more extensive results in-browser without having to
+                download and query the results. Depending on the experiment type more columns may be added to the
+                .csv file, if so this will be explained to the user. The results are explained more in depth below.</p>
+
+            <p>Admins can also choose to delete experiments on this page - a confirmation is shown to help prevent
+                mistakes.</p>
+
+
+            <h3 class="mt-5">Experiment Results (A)</h3>
+            <p>This view contains displayed results for a specific experiment, as well as the option to download the
+            results in a .csv file. Depending on the experiment type more columns may be added to the
+                .csv file, if so this will be explained to the user. <b style="color: red">TODO</b></p>
+
+            <p>For each experiment we want to know how each participant answered the questions, thus we need to be able
+            to differentiate between several participants answering the experiment, perhaps simultaneously. To manage
+            this we use <a href="https://docs.djangoproject.com/en/3.2/topics/http/sessions/">Django sessions</a>. Each
+            user is "signed up" for an experiment upon starting it, and their session is given a unique key to link
+            that user with that experiment. Thus, on all future HTTP GET requests for experiment questions, the
+            participants client can provide such key to authenticate with the server that they have registered for
+            such experiment. This functionality prevents participants from answering multiple experiments at once. Note,
+            if a participant has already "signed up" for an experiment and re-enters the consent form, they will be
+                registered under a new key, so their results will appear under a different user.</p>
+
+
+            <h3 class="mt-5">Experiment Consent</h3>
+            <p>To navigate to this link participants must be given its URL, for convenience this is displayed to the
+                admin after they create the experiment, on the <i>Experiment Details</i> page.</p>
+
+            <p>Before a participant can begin a quiz, they are forced to check that they consent to several statements
+            (<b style="color: red">CHANGE</b>). This page also displays the title of the experiment, as well as its
+                description that was given when creating the experiment.</p>
+
+            <p>After a participant has consented to everything and clicked the button, their client will be
+            registered with the experiment (explained more in depth above in "Experiment Results (A)"), and they will
+                be redirected to the first question.</p>
+
+            <h3 class="mt-5">Question</h3>
+            <p>The design and functionality of each question will be very different depending on the options, so we will
+                break this into separate sections for each type of question.</p>
+
+            <p>In every type of question, participants can enlarge images to their original resolution by clicking on them.
+            This will darken the display and show the respective image at the center of the screen. Clicking anywhere
+            on the display will remove this view. Note that sometimes images are resized depending on the resolution
+            of the display, but they will never be scaled above their original resolution and the original image can
+                be seen by clicking it.</p>
+
+            <h4 class="mt-3" style="color: #424a8c">Pairwise Comparison</h4>
+            <p>Participants will be shown several images, and be asked to choose one. They can select an image by clicking
+                the radio choice, or its label, next to the image.</p>
+
+            <p>If there are more than four images, they will be displayed in rows with four images per row. The images
+                may also be scaled depending on the display resolution, as we noted earlier.</p>
+
+            <h4 class="mt-3" style="color: #424a8c">Ranking</h4>
+            <p>Participants will be shown several images in a vertical column, and will be asked to arrange these
+            in some ordering of their preference. They can change the ordering by holding down the handle associated
+                with each image and dragging it up or down.</p>
+
+            <p>Note, for ranking participants must click on every image to enlarge them before they can proceed to
+                the next question.</p>
+
+            <h4 class="mt-3" style="color: #424a8c">Rating</h4>
+            <p>Participants are shown several images and are asked to rate each one. Depending on how the admin set
+            up the experiment, they will have to answer in a particular way:</p>
+            <ul>
+                <li>
+                    Input Field - Type rating
+                </li>
+                <li>
+                    Radio - Select rating from list of choices
+                </li>
+                <li>
+                    Slider - Move slider to select rating
+                </li>
+            </ul>
+
+            <p>If there are more than four images, they will be displayed in rows with four images per row. The images
+            may also be scaled depending on the display resolution, as we noted earlier. Participants can also
+                select an images rating when it is enlarged (not for radio though), for convenience. </p>
+
+        </div>
+
+    </body>
+
+</html>

@@ -1,0 +1,24 @@
+table, th, td {
+  border: 1px solid black;
+}
+
+/* https://nemecek.be/blog/4/django-how-to-let-user-re-ordersort-table-of-content-with-drag-and-drop */
+.handle {
+    display: inline-block;
+    border-top: 3px solid var(--dark);
+    width: 30px;
+    padding-top: 5px;
+    cursor: grab;
+}
+.handle:after, .handle:before {
+    display: block;
+    content: "";
+    padding-top: 5px;
+    border-top: 3px solid var(--dark);
+}
+.handle:hover, .handle:hover:before, .handle:hover:after {
+    border-color: var(--primary);
+}
+.handle:active, .handle:active:before, .handle:active:after {
+    cursor: grabbing;
+}
