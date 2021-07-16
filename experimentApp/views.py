@@ -6,7 +6,7 @@ from django.urls import reverse
 from utils import sortInputFiles, generateUniqueSlug, sortInputDirs
 from .models import Experiment, ExperimentQuestion, Pairwise, PairwiseGroundTruth, Ranking, RankingChoice, Rating, \
     RatingChoice, ExperimentRegister, PairwiseChoice, RankingGroundTruth, RatingGroundTruth, ExperimentRefresher, \
-    ExperimentSlug, ExperimentCustomColours
+    ExperimentSlug, ExperimentCustomColours, RankingOptions
 from .forms import ExperimentForm, OrderingForm
 
 from PIL import Image
@@ -165,7 +165,7 @@ def createExperimentPC(request):
                                                                                                         'resolutions'})
 
             # Randomise ordering if user chose
-            if request.POST.get("pcRandomise"):
+            if request.POST.get("randomiseQuestionOption"):
                 random.shuffle(sorted_files)  # Randomises order of list
 
             # If user has chosen to compare same image from different algorithms
@@ -190,7 +190,7 @@ def createExperimentPC(request):
                         algorithm_name = algorithm_name.split('.')[0]  # Removes file extension
                         for file in file_set:
 
-                            if (request.POST.get("pcGround") == "on") and ("input" in file.name):
+                            if (request.POST.get("groundTruthOption") == "on") and ("input" in file.name):
                                 PairwiseGroundTruth.objects.create(question=question,
                                                                    choice_text="Ground Truth", choice_image=file_set[0])
                             else:
@@ -203,7 +203,7 @@ def createExperimentPC(request):
                         for file in file_set:
                             algorithm_name = file.name.split('_', 1)[1]  # Gets name of file after first '_'
                             algorithm_name = algorithm_name.split('.')[0]  # Removes file extension
-                            if (request.POST.get("pcGround") == "on") and ("input" in file.name):
+                            if (request.POST.get("groundTruthOption") == "on") and ("input" in file.name):
                                 PairwiseGroundTruth.objects.create(question=question,
                                                                    choice_text="Ground Truth", choice_image=file)
                             else:
@@ -222,11 +222,11 @@ def createExperimentPC(request):
                     # ground truth images to the comparisons if the user requested so
                     comparisons_list = []
                     for i in range(len(file_set)):
-                        if (request.POST.get("pcGround") == "on") and "input" in file_set[i].name:
+                        if (request.POST.get("groundTruthOption") == "on") and "input" in file_set[i].name:
                             continue
 
                         for j in range(i + 1, len(file_set)):
-                            if (request.POST.get("pcGround") == "on") and "input" in file_set[j].name:
+                            if (request.POST.get("groundTruthOption") == "on") and "input" in file_set[j].name:
                                 continue
 
                             # Else add pair to comparisons
@@ -237,7 +237,7 @@ def createExperimentPC(request):
 
                     # Get reference to GT model
                     GT_file = None
-                    if request.POST.get("pcGround") == "on":
+                    if request.POST.get("groundTruthOption") == "on":
                         for file in file_set:
                             if "input" in file.name:
                                 GT_file = file
@@ -262,7 +262,7 @@ def createExperimentPC(request):
                         Pairwise.objects.create(question=question, choice_algorithm=algorithm_name_j,
                                                 choice_text="Test", choice_image=file_set[j])
 
-                        if request.POST.get("pcGround") == "on":
+                        if request.POST.get("groundTruthOption") == "on":
                             PairwiseGroundTruth.objects.create(question=question,
                                                                choice_text="Ground Truth", choice_image=GT_file)
 
@@ -330,12 +330,24 @@ def createExperimentRK(request):
                                                                                        'error_message': 'Please upload '
                                                                                                         'a refresher image'})
 
+            # Save ranking options
+            if request.POST.get("rkChoiceRandomise"):
+                RankingOptions.objects.create(experiment=experimentInstance,
+                                          randomiseInitialOrdering=True)
+            else:
+                RankingOptions.objects.create(experiment=experimentInstance,
+                                              randomiseInitialOrdering=False)
+
             # Sorts list of files into list of list(s), where each sublist contains files with same suffix
             if request.POST.get("uploadChoice") == "file":
                 files = request.FILES.getlist('uploadFileName')
                 sorted_files = sortInputFiles(files, [])
             else:
                 sorted_files = sortInputDirs(request)
+
+            # Randomise ordering if user chose
+            if request.POST.get("randomiseQuestionOption"):
+                random.shuffle(sorted_files)  # Randomises order of list
 
             # Check each image set has consistent resolution
             for file_set in sorted_files:
@@ -364,7 +376,7 @@ def createExperimentRK(request):
                     algorithm_name = file.name.split('_', 1)[1]  # Gets name of file after first '_'
                     algorithm_name = algorithm_name.split('.')[0]  # Removes file extension
 
-                    if (request.POST.get("rkGround") == "on") and ("input" in file.name):
+                    if (request.POST.get("groundTruthOption") == "on") and ("input" in file.name):
                         RankingGroundTruth.objects.create(question=question, choice_text="GT Choice",
                                                           choice_image=file)
                     else:
@@ -434,6 +446,10 @@ def createExperimentRT(request):
             else:
                 sorted_files = sortInputDirs(request)
 
+            # Randomise ordering if user chose
+            if request.POST.get("randomiseQuestionOption"):
+                random.shuffle(sorted_files)  # Randomises order of list
+
             # Check each image set has consistent resolution
             for file_set in sorted_files:
                 res = None
@@ -448,7 +464,7 @@ def createExperimentRT(request):
                                        'error_message': 'Please upload file sets with consistent resolutions'})
 
             # Get options
-            ground_truth = request.POST.get("rtGround") == "on"
+            ground_truth = request.POST.get("groundTruthOption") == "on"
 
             select_choice = request.POST.get("select_choice")
             if select_choice is None:
@@ -661,6 +677,8 @@ def experimentQuestion(request, experiment_slug, question_num):
 
         elif experiment.question_type == 'RANKING':
             ranking_set = Ranking.objects.filter(question=question)
+            ranking_set = list(ranking_set)
+            random.shuffle(ranking_set)
 
             try:
                 groundTruth = get_object_or_404(RankingGroundTruth, question=question)

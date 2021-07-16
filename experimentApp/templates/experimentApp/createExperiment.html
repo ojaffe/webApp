@@ -171,40 +171,54 @@
 
                 <!-- Questions -->
                 <h2 class="mt-5">Type of Questions</h2>
-                Choose one of the below style of questions, and modify the options to your choosing.
+                <p>Choose one of the below style of questions, and modify the global and question-specific options to your choosing.</p>
+
+                <ul class="mb-3" style="list-style-type:none;">
+                    <li>
+                        <input type="checkbox" id="groundTruthOption" name="groundTruthOption">
+                        <label for="groundTruthOption">Compare images from the same algorithm to the ground truth</label>
+                    </li>
+                    <li>
+                        <input type="checkbox" id="randomiseQuestionOption" name="randomiseQuestionOption">
+                        <label for="randomiseQuestionOption">Randomise ordering of questions upon experiment creation</label>
+                    </li>
+                </ul>
+
 
                 <table>
 
                     <!-- Pairwise comparison -->
                     <tr>
-                        <td style="padding: 0px 40px 80px 20px;">
+                        <td style="padding: 0px 40px 0px 20px;">
                             <input type="radio" name="questionType" id="rad1" onclick="selectPC();" value="pc">
-                            <label for="rad1"><h4 class="mt-4">Pairwise comparison</h4></label>
+                            <label for="rad1"><h4>Pairwise comparison</h4></label>
                         </td>
-                        <td style="padding: 0px 30px 0px 0px;">
+                        <td style="height: 120px; vertical-align: bottom;">
                             <div id="pcOption2">
-                                <ul>
-                                    <input type="radio" id="pcSameAlgor" name="pcAlgorChoice" value="pcSameAlgor" checked>
-                                    <label for="pcSameAlgor">Compare all images from the same image</label>
-                                </ul>
-                                <ul>
-                                    <input type="radio" id="pcNC3" name="pcAlgorChoice" value="pcNC3">
-                                    <label for="pcNC3">Perform NC2 comparisons</label>
+                                <ul style="list-style-type:none;">
+                                    <li>
+                                        <input type="radio" id="pcSameAlgor" name="pcAlgorChoice" value="pcSameAlgor" checked>
+                                        <label for="pcSameAlgor">Compare all images from the same image</label>
+                                    </li>
+                                    <li>
+                                        <input type="radio" id="pcNC3" name="pcAlgorChoice" value="pcNC3">
+                                        <label for="pcNC3">Perform NC2 comparisons</label>
+                                    </li>
                                 </ul>
                             </div>
                         </td>
-                        <td style="padding: 0px 0px 0px 0px;">
+                        <td style="height: 120px; vertical-align: bottom;">
                             <div id="pcOption">
-                                <input type="checkbox" id="pc4" name="pcGround">
-                                <label for="pc4">Compare images from the same algorithm to the ground truth</label>
-
-                                <br>
-                                <input type="checkbox" id="pc3" name="pcRandomise" disabled>
-                                <label for="pc3">Randomise the ordering of the comparisons</label>
-
-                                <br>
-                                <input type="checkbox" id="pc5" name="pcCompareWithSame">
-                                <label for="pc5">Add in comparisons with the same image 5% of the time</label><br>
+                                <ul style="list-style-type:none;">
+                                    <li>
+                                        <input type="checkbox" id="pc3" name="pcRandomise" disabled>
+                                        <label for="pc3">Randomise the ordering of the comparisons</label>
+                                    </li>
+                                    <li>
+                                        <input type="checkbox" id="pc5" name="pcCompareWithSame">
+                                        <label for="pc5">Add in comparisons with the same image 5% of the time</label><br>
+                                    </li>
+                                </ul>
                             </div>
                         </td>
                     </tr>
@@ -212,7 +226,7 @@
 
                     <!-- Ranking -->
                     <tr>
-                        <td style="padding: 0px 40px 50px 20px;">
+                        <td style="padding: 0px 40px 40px 20px;">
                             <input type="radio" name="questionType" id="radRanking" onclick="selectRK();" value="rk">
                             <label for="radRanking"><h4 class="mt-4">Ranking</h4></label>
                         </td>
@@ -221,41 +235,46 @@
                         </td>
                         <td style="padding: 30px 0px 0px 0px; vertical-align:top;">
                             <div id="rkOption">
-                                <input type="checkbox" id="rk1" name="rkGround">
-                                <label for="rk1">Compare images from the same algorithm to the ground truth</label>
+                                <ul style="list-style-type:none;">
+                                    <li>
+                                        <input type="checkbox" id="rkChoiceRandomise" name="rkChoiceRandomise" disabled>
+                                        <label for="rkChoiceRandomise">Randomise initial ordering of each question</label>
+                                    </li>
+                                </ul>
                             </div>
                         </td>
                     </tr>
 
                     <!-- Rating -->
-                    <td style="padding: 0px 40px 50px 20px;">
+                    <td style="padding: 0px 40px 50px 20px; vertical-align: top;">
                         <input type="radio" name="questionType" id="radRating" onclick="selectRT();" value="rt">
                         <label for="radRating"><h4 class="mt-4">Rating</h4></label>
                     </td>
                     <td>
 
                     </td>
-                    <td style="padding: 30px 0px 0px 0px; vertical-align:top">
+                    <td style="height: 140px; vertical-align: bottom;">
                         <div id="rtOption">
-                            <input type="checkbox" id="rt1" name="rtGround">
-                            <label for="rt1">Compare images from the same algorithm to the ground truth</label>
+                            <ul style="list-style-type:none;">
+                                <li>
+                                    <select name="select_choice" id="select_choice">
+                                        <option disabled selected value> -- Select an option -- </option>
+                                        <option value="INPUT_FIELD">Input field</option>
+                                        <option value="RADIO">Radio</option>
+                                        <option value="SLIDER">Slider</option>
+                                    </select>
+                                    <label for="select_choice">Select how the user should answer a question</label>
+                                </li>
 
-                            <br>
-
-                            <select name="select_choice" id="select_choice">
-                                <option disabled selected value> -- Select an option -- </option>
-                                <option value="INPUT_FIELD">Input field</option>
-                                <option value="RADIO">Radio</option>
-                                <option value="SLIDER">Slider</option>
-                            </select>
-                            <label for="select_choice">Select how the user should answer a question</label>
-
-                            <br>
-                            <input id="rt5" name="rtLowerBound" value="0">
-                            <label for="rt5">Lower bound</label>
-                            <br>
-                            <input id="rt6" name="rtUpperBound" value="100">
-                            <label for="rt6">Upper bound</label>
+                                <li>
+                                    <input id="rt5" name="rtLowerBound" value="0">
+                                    <label for="rt5">Lower bound</label>
+                                </li>
+                                <li>
+                                    <input id="rt6" name="rtUpperBound" value="100">
+                                    <label for="rt6">Upper bound</label>
+                                </li>
+                            </ul>
                         </div>
                     </td>
                 </table>
@@ -274,13 +293,15 @@
                         </td>
                         <td style="padding: 0px 0px 0px 100px;">
                             <div id="colToggle">
-                                <ul>
-                                    <label for="textColourPicker">Choose text colour</label>
-                                    <input type="color" id="textColourPicker" name="textColourPicker" value="#858585">
-                                </ul>
-                                <ul>
-                                    <label for="backgroundColourPicker">Choose background colour</label>
-                                    <input type="color" id="backgroundColourPicker" name="backgroundColourPicker" value="#ffffff">
+                                <ul style="list-style-type:none; vertical-align: top;">
+                                    <li style="margin: 10px 0;">
+                                        <label for="textColourPicker">Choose text colour</label>
+                                        <input type="color" id="textColourPicker" name="textColourPicker" value="#858585">
+                                    </li>
+                                    <li style="margin: 10px 0;">
+                                        <label for="backgroundColourPicker">Choose background colour</label>
+                                        <input type="color" id="backgroundColourPicker" name="backgroundColourPicker" value="#ffffff">
+                                    </li>
                                 </ul>
                             </div>
                         </td>
@@ -300,37 +321,40 @@
                             <input type="checkbox" id="radRef" name="radRef" onclick="toggleRF();">
                             <label for="radRef"><h4 class="mt-4">Include Refresher Image</h4></label>
                         </td>
-                        <td style="padding: 45px 0px 0px 0px; vertical-align:top;">
-                            <div id="rfToggle" style="text-align: top;">
-                                <ul>
-                                    <input type="radio" id="radRefCol" name="refChoice" value="col" checked onclick="selectCol();">
-                                    <label for="radRefCol">Show colour on screen</label>
-                                </ul>
-                                <ul>
-                                    <input type="radio" id="radRefImage" name="refChoice" value="im" onclick="selectIm();">
-                                    <label for="radRefImage">Show custom image on screen</label>
+                        <td style="padding: 20px 0px 0px 0px; vertical-align:top;">
+                            <div id="rfToggle">
+                                <ul style="list-style-type:none;">
+                                    <li style="margin: 10px 0;">
+                                        <input type="radio" id="radRefCol" name="refChoice" value="col" checked onclick="selectCol();">
+                                        <label for="radRefCol">Show colour on screen</label>
+                                    </li>
+                                    <li style="margin: 10px 0;">
+                                        <input type="radio" id="radRefImage" name="refChoice" value="im" onclick="selectIm();">
+                                        <label for="radRefImage">Show custom image on screen</label>
+                                    </li>
                                 </ul>
                             </div>
                         </td>
-                        <td style="padding: 45px 0px 0px 40px; vertical-align:top;">
+                        <td style="padding: 20px 0px 0px 40px; vertical-align:top;">
                             <div id="rfToggle2">
-                                <input id="timeVal" name="timeVal" value="1000">
-                                <label for="timeVal">Choose time to show (ms)</label>
-
-                                <br>
-                                <br>
-
-                                <div id="rfCol">
-                                    <label for="colourpicker">Choose colour</label>
-                                    <input type="color" id="colourpicker" name="colourpicker" value="#b5b5b5">
-                                </div>
-
-                                <br>
-
-                                <div id="rfImage">
-                                    <label for="refImage">Choose custom image</label>
-                                    <input type="file" id="refImage" name="refImage" value="Choose custom image">
-                                </div>
+                                <ul style="list-style-type:none;">
+                                    <li style="margin: 10px 0;">
+                                        <input id="timeVal" name="timeVal" value="1000">
+                                        <label for="timeVal">Choose time to show (ms)</label>
+                                    </li>
+                                    <li style="margin: 10px 0;">
+                                        <div id="rfCol">
+                                            <label for="colourpicker">Choose colour</label>
+                                            <input type="color" id="colourpicker" name="colourpicker" value="#b5b5b5">
+                                        </div>
+                                    </li>
+                                    <li style="margin: 10px 0;">
+                                        <div id="rfImage">
+                                            <label for="refImage">Choose custom image</label>
+                                            <input type="file" id="refImage" name="refImage" value="Choose custom image">
+                                        </div>
+                                    </li>
+                                </ul>
                             </div>
                         </td>
                     </tr>

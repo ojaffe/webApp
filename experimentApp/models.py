@@ -80,6 +80,13 @@ class PairwiseChoice(models.Model):
     choice = models.IntegerField()  # 0 if not chosen, 1 if chosen
 
 
+# Options about experiment if ranking is used, will be created for all ranking experiments
+class RankingOptions(models.Model):
+    experiment = models.ForeignKey(Experiment, on_delete=models.CASCADE)
+
+    randomiseInitialOrdering = models.BooleanField()
+
+
 class Ranking(models.Model):
     question = models.ForeignKey(ExperimentQuestion, on_delete=models.CASCADE)
 
