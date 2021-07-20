@@ -1,7 +1,42 @@
 import random
 import string
 
-from experimentApp.models import ExperimentSlug
+from experimentApp.models import ExperimentSlug, ExperimentCustomColours, ExperimentRefresher
+
+
+# Helper function to save generic details about experiment and options that are present in all types of experiments
+def saveExperimentInstance(request, experimentForm, experiment_type):
+
+    # Save Experiment model
+    experimentInstance = experimentForm.save(commit=False)
+    experimentInstance.question_type = experiment_type
+    experimentInstance.save()
+
+    # Generates and saves experiment slug
+    experimentSlug = generateUniqueSlug()
+    ExperimentSlug.objects.create(experiment=experimentInstance, slug=experimentSlug)
+
+    # Save custom colour options
+    if request.POST.get("customColours"):
+        ExperimentCustomColours.objects.create(experiment=experimentInstance,
+                                               text_colour=request.POST.get("textColourPicker"),
+                                               background_colour=request.POST.get("backgroundColourPicker"))
+
+    # Save refresher options
+    if request.POST.get("radRef"):
+        time_shown = request.POST.get("timeVal")
+        if request.POST.get("refChoice") == "col":
+            custom_colour = request.POST.get("colourpicker")
+            ExperimentRefresher.objects.create(experiment=experimentInstance,
+                                               time_shown=time_shown, custom_colour=custom_colour,
+                                               custom_image=None)
+        else:
+            custom_image = request.FILES.get("refImage")
+            ExperimentRefresher.objects.create(experiment=experimentInstance,
+                                time_shown=time_shown, custom_colour="",
+                                custom_image=custom_image)
+
+    return experimentInstance, experimentSlug
 
 
 # Given list of files, generates new list of tuples where each tuple contains all files with same

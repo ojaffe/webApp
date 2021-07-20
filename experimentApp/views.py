@@ -3,7 +3,7 @@ from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.shortcuts import render, get_object_or_404
 from django.urls import reverse
 
-from utils import sortInputFiles, generateUniqueSlug, sortInputDirs
+from utils import sortInputFiles, generateUniqueSlug, sortInputDirs, saveExperimentInstance
 from .models import Experiment, ExperimentQuestion, Pairwise, PairwiseGroundTruth, Ranking, RankingChoice, Rating, \
     RatingChoice, ExperimentRegister, PairwiseChoice, RankingGroundTruth, RatingGroundTruth, ExperimentRefresher, \
     ExperimentSlug, ExperimentCustomColours, RankingOptions
@@ -71,14 +71,56 @@ def createExperiment(request):
         # If data and options chosen by user are valid
         if experimentFullForm.is_valid():
 
+            # Checks files are uploaded for selected choice
+            experimentForm = ExperimentForm()
+            if request.POST.get("uploadChoice") == "file":
+                if len(request.FILES.getlist('uploadFileName')) == 0:
+                    return render(request, 'experimentApp/createExperiment.html', {'experimentForm': experimentForm,
+                                                                                   'error_message': 'Please upload files'})
+            else:
+                if len(request.FILES.getlist('uploadDir0')) == 0:
+                    return render(request, 'experimentApp/createExperiment.html', {'experimentForm': experimentForm,
+                                                                                   'error_message': 'Please upload files'})
+
+            # Sorts list of files into list of list(s), where each sublist contains files with same suffix
+            if request.POST.get("uploadChoice") == "file":
+                files = request.FILES.getlist('uploadFileName')
+                sorted_files = sortInputFiles(files, [])
+            else:
+                sorted_files = sortInputDirs(request)
+
+            # Check each image set has consistent resolution
+            for file_set in sorted_files:
+                res = None
+                for file in file_set:
+
+                    im = Image.open(file)
+                    if res is None:
+                        res = im.size
+                    elif res != im.size:
+                        return render(request, 'experimentApp/createExperiment.html',
+                                      {'experimentForm': experimentForm,
+                                       'error_message': 'Please upload file sets with consistent resolutions'})
+
+            # Check user has uploaded refresher image if they have selected the option to include one
+            if request.POST.get("radRef"):
+                if request.POST.get("refChoice") == "im" and request.FILES.get("refImage") is None:
+                    return render(request, 'experimentApp/createExperiment.html', {'experimentForm': experimentForm,
+                                                                                   'error_message': 'Please upload '
+                                                                                                    'a refresher image'})
+
+            # Randomise ordering if user chose
+            if request.POST.get("randomiseQuestionOption"):
+                random.shuffle(sorted_files)  # Randomises order of list
+
             # Redirect to helper function depending on type of questions
             question_type = request.POST.get("questionType")
             if question_type == "pc":
-                return createExperimentPC(request)
+                return createExperimentPC(request, sorted_files)
             elif question_type == "rk":
-                return createExperimentRK(request)
+                return createExperimentRK(request, sorted_files)
             elif question_type == "rt":
-                return createExperimentRT(request)
+                return createExperimentRT(request, sorted_files)
         else:
 
             # Otherwise render same view with appropriate error message
@@ -97,414 +139,244 @@ def createExperiment(request):
 # View to create pairwise-comparison experiment on POST request from experiment creation. Creates respective models
 # depending on options the user specified
 @login_required
-def createExperimentPC(request):
-    if request.method == 'POST':
-        experimentForm = ExperimentForm(request.POST)
+def createExperimentPC(request, sorted_files):
+    experimentForm = ExperimentForm(request.POST)
 
-        experimentFullForm = ExperimentForm(request.POST or None)
+    experimentFullForm = ExperimentForm(request.POST or None)
 
-        if experimentFullForm.is_valid():
+    if experimentFullForm.is_valid():
 
-            # Save Experiment model
-            experimentInstance = experimentForm.save(commit=False)
-            experimentInstance.question_type = 'pairwise-comparison'
-            experimentInstance.save()
+        # Save experiment details+options
+        experimentInstance, experimentSlug = saveExperimentInstance(request, experimentForm, 'pairwise-comparison')
 
-            # Generates and saves experiment slug
-            experimentSlug = generateUniqueSlug()
-            ExperimentSlug.objects.create(experiment=experimentInstance, slug=experimentSlug)
+        # If user has chosen to compare same image from different algorithms
+        algor_choice = request.POST['pcAlgorChoice']
+        if algor_choice == "pcSameAlgor":
 
-            # Save custom colour options
-            if request.POST.get("customColours"):
-                ExperimentCustomColours.objects.create(experiment=experimentInstance,
-                                                       text_colour=request.POST.get("textColourPicker"),
-                                                       background_colour=request.POST.get("backgroundColourPicker"))
-
-            # Save refresher options
-            if request.POST.get("radRef"):
-                time_shown = request.POST.get("timeVal")
-                if request.POST.get("refChoice") == "col":
-                    custom_colour = request.POST.get("colourpicker")
-                    experimentRefresher = ExperimentRefresher(experiment=experimentInstance,
-                                                              time_shown=time_shown, custom_colour=custom_colour,
-                                                              custom_image=None)
-                    experimentRefresher.save()
-                else:
-                    custom_image = request.FILES.get("refImage")
-                    if custom_image is not None:
-                        experimentRefresher = ExperimentRefresher(experiment=experimentInstance,
-                                                                  time_shown=time_shown, custom_colour="",
-                                                                  custom_image=custom_image)
-                        experimentRefresher.save()
-                    else:
-                        return render(request, 'experimentApp/createExperiment.html', {'experimentForm': experimentForm,
-                                                                                       'error_message': 'Please upload '
-                                                                                                        'a refresher image'})
-
-            # Sorts list of files into list of list(s), where each sublist contains files with same suffix
-            if request.POST.get("uploadChoice") == "file":
-                files = request.FILES.getlist('uploadFileName')
-                sorted_files = sortInputFiles(files, [])
-            else:
-                sorted_files = sortInputDirs(request)
-
-            # Check each image set has consistent resolution
+            question_counter = 1
             for file_set in sorted_files:
-                res = None
-                for file in file_set:
 
-                    im = Image.open(file)
-                    if res is None:
-                        res = im.size
-                    elif res != im.size:
-                        return render(request, 'experimentApp/createExperiment.html', {'experimentForm': experimentForm,
-                                                                                       'error_message': 'Please '
-                                                                                                        'upload file '
-                                                                                                        'sets with '
-                                                                                                        'consistent '
-                                                                                                        'resolutions'})
+                question = ExperimentQuestion.objects.create(question_num=question_counter,
+                                              question_text='Question ' + str(question_counter),
+                                              experiment=experimentInstance)
+                question.save()
+                question_counter += 1
 
-            # Randomise ordering if user chose
-            if request.POST.get("randomiseQuestionOption"):
-                random.shuffle(sorted_files)  # Randomises order of list
+                # Separate counter used for choices, so when ground-truth enabled it isn't included
+                choice_counter = 0
 
-            # If user has chosen to compare same image from different algorithms
-            algor_choice = request.POST['pcAlgorChoice']
-            if algor_choice == "pcSameAlgor":
+                # If user wants chance of comparing the same image
+                if (request.POST.get("pcCompareWithSame") == "on") and random.uniform(0, 1) < 0.05:
+                    algorithm_name = file_set[0].name.split('_', 1)[1]  # Gets name of file after first '_'
+                    algorithm_name = algorithm_name.split('.')[0]  # Removes file extension
+                    for file in file_set:
 
-                question_counter = 1
-                for file_set in sorted_files:
+                        if (request.POST.get("groundTruthOption") == "on") and ("input" in file.name):
+                            PairwiseGroundTruth.objects.create(question=question,
+                                                               choice_text="Ground Truth", choice_image=file_set[0])
+                        else:
+                            Pairwise.objects.create(question=question, choice_algorithm=algorithm_name,
+                                                    choice_text="Choice " + str(choice_counter),
+                                                    choice_image=file_set[0])
+                            choice_counter += 1
 
+                else:  # Otherwise add all images to question, ground truth exists in separate model if required
+                    for file in file_set:
+                        algorithm_name = file.name.split('_', 1)[1]  # Gets name of file after first '_'
+                        algorithm_name = algorithm_name.split('.')[0]  # Removes file extension
+                        if (request.POST.get("groundTruthOption") == "on") and ("input" in file.name):
+                            PairwiseGroundTruth.objects.create(question=question,
+                                                               choice_text="Ground Truth", choice_image=file)
+                        else:
+                            Pairwise.objects.create(question=question, choice_algorithm=algorithm_name,
+                                                    choice_text="Choice " + str(choice_counter), choice_image=file)
+                            choice_counter += 1
+
+            return HttpResponseRedirect(reverse('experimentApp:experimentDetail', args=(experimentSlug,)))
+
+        else:
+            # For each set of files from same original image, generate all comparisons as questions
+            question_counter = 1
+            for file_set in sorted_files:
+
+                # Generate list of tuples of indexes of images which need to be compared, whilst not adding any
+                # ground truth images to the comparisons if the user requested so
+                comparisons_list = []
+                for i in range(len(file_set)):
+                    if (request.POST.get("groundTruthOption") == "on") and "input" in file_set[i].name:
+                        continue
+
+                    for j in range(i + 1, len(file_set)):
+                        if (request.POST.get("groundTruthOption") == "on") and "input" in file_set[j].name:
+                            continue
+
+                        # Else add pair to comparisons
+                        comparisons_list.append((i, j))
+
+                if request.POST.get("pcRandomise"):
+                    random.shuffle(comparisons_list)  # Randomises order of list
+
+                # Get reference to GT model
+                GT_file = None
+                if request.POST.get("groundTruthOption") == "on":
+                    for file in file_set:
+                        if "input" in file.name:
+                            GT_file = file
+                            break
+
+                # Generate questions and respective choices
+                for i, j in comparisons_list:
                     question = ExperimentQuestion(question_num=question_counter,
                                                   question_text='Question ' + str(question_counter),
                                                   experiment=experimentInstance)
                     question.save()
                     question_counter += 1
 
-                    # Separate counter used for choices, so when ground-truth enabled it isn't included
-                    choice_counter = 0
+                    algorithm_name_i = file_set[i].name.split('_', 1)[1]  # Gets name of file after first '_'
+                    algorithm_name_i = algorithm_name_i.split('.')[0]  # Removes file extension
 
-                    # If user wants chance of comparing the same image
-                    if (request.POST.get("pcCompareWithSame") == "on") and random.uniform(0, 1) < 0.05:
-                        algorithm_name = file_set[0].name.split('_', 1)[1]  # Gets name of file after first '_'
-                        algorithm_name = algorithm_name.split('.')[0]  # Removes file extension
-                        for file in file_set:
+                    algorithm_name_j = file_set[j].name.split('_', 1)[1]  # Gets name of file after first '_'
+                    algorithm_name_j = algorithm_name_j.split('.')[0]  # Removes file extension
 
-                            if (request.POST.get("groundTruthOption") == "on") and ("input" in file.name):
-                                PairwiseGroundTruth.objects.create(question=question,
-                                                                   choice_text="Ground Truth", choice_image=file_set[0])
-                            else:
-                                Pairwise.objects.create(question=question, choice_algorithm=algorithm_name,
-                                                        choice_text="Choice " + str(choice_counter),
-                                                        choice_image=file_set[0])
-                                choice_counter += 1
+                    Pairwise.objects.create(question=question, choice_algorithm=algorithm_name_i,
+                                            choice_text="Test", choice_image=file_set[i])
+                    Pairwise.objects.create(question=question, choice_algorithm=algorithm_name_j,
+                                            choice_text="Test", choice_image=file_set[j])
 
-                    else:  # Otherwise add all images to question, ground truth exists in separate model if required
-                        for file in file_set:
-                            algorithm_name = file.name.split('_', 1)[1]  # Gets name of file after first '_'
-                            algorithm_name = algorithm_name.split('.')[0]  # Removes file extension
-                            if (request.POST.get("groundTruthOption") == "on") and ("input" in file.name):
-                                PairwiseGroundTruth.objects.create(question=question,
-                                                                   choice_text="Ground Truth", choice_image=file)
-                            else:
-                                Pairwise.objects.create(question=question, choice_algorithm=algorithm_name,
-                                                        choice_text="Choice " + str(choice_counter), choice_image=file)
-                                choice_counter += 1
-
-                return HttpResponseRedirect(reverse('experimentApp:experimentDetail', args=(experimentSlug,)))
-
-            else:
-                # For each set of files from same original image, generate all comparisons as questions
-                question_counter = 1
-                for file_set in sorted_files:
-
-                    # Generate list of tuples of indexes of images which need to be compared, whilst not adding any
-                    # ground truth images to the comparisons if the user requested so
-                    comparisons_list = []
-                    for i in range(len(file_set)):
-                        if (request.POST.get("groundTruthOption") == "on") and "input" in file_set[i].name:
-                            continue
-
-                        for j in range(i + 1, len(file_set)):
-                            if (request.POST.get("groundTruthOption") == "on") and "input" in file_set[j].name:
-                                continue
-
-                            # Else add pair to comparisons
-                            comparisons_list.append((i, j))
-
-                    if request.POST.get("pcRandomise"):
-                        random.shuffle(comparisons_list)  # Randomises order of list
-
-                    # Get reference to GT model
-                    GT_file = None
                     if request.POST.get("groundTruthOption") == "on":
-                        for file in file_set:
-                            if "input" in file.name:
-                                GT_file = file
-                                break
+                        PairwiseGroundTruth.objects.create(question=question,
+                                                           choice_text="Ground Truth", choice_image=GT_file)
 
-                    # Generate questions and respective choices
-                    for i, j in comparisons_list:
-                        question = ExperimentQuestion(question_num=question_counter,
-                                                      question_text='Question ' + str(question_counter),
-                                                      experiment=experimentInstance)
-                        question.save()
-                        question_counter += 1
+            return HttpResponseRedirect(reverse('experimentApp:experimentDetail', args=(experimentSlug,)))
 
-                        algorithm_name_i = file_set[i].name.split('_', 1)[1]  # Gets name of file after first '_'
-                        algorithm_name_i = algorithm_name_i.split('.')[0]  # Removes file extension
-
-                        algorithm_name_j = file_set[j].name.split('_', 1)[1]  # Gets name of file after first '_'
-                        algorithm_name_j = algorithm_name_j.split('.')[0]  # Removes file extension
-
-                        Pairwise.objects.create(question=question, choice_algorithm=algorithm_name_i,
-                                                choice_text="Test", choice_image=file_set[i])
-                        Pairwise.objects.create(question=question, choice_algorithm=algorithm_name_j,
-                                                choice_text="Test", choice_image=file_set[j])
-
-                        if request.POST.get("groundTruthOption") == "on":
-                            PairwiseGroundTruth.objects.create(question=question,
-                                                               choice_text="Ground Truth", choice_image=GT_file)
-
-                return HttpResponseRedirect(reverse('experimentApp:experimentDetail', args=(experimentSlug,)))
-
+    else:
+        if request.FILES.getlist('uploadFileName') is None:
+            return render(request, 'experimentApp/createExperiment.html', {'experimentForm': experimentForm,
+                                                                           'error_message': 'Please upload the '
+                                                                                            'images required for '
+                                                                                            'the experiment'})
         else:
-            if request.FILES.getlist('uploadFileName') is None:
-                return render(request, 'experimentApp/createExperiment.html', {'experimentForm': experimentForm,
-                                                                               'error_message': 'Please upload the '
-                                                                                                'images required for '
-                                                                                                'the experiment'})
-            else:
-                return render(request, 'experimentApp/createExperiment.html', {'experimentForm': experimentForm,
-                                                                               'error_message': 'Please enter a valid '
-                                                                                                'title and description'})
-
-    return render(request, 'experimentApp/stageView.html', {'title': 'Error',
-                                                            'status_message': 'Error on requesting view: wrong request'
-                                                                              ' method. Please attempt to create an'
-                                                                              ' experiment again by navigating to home.'})
+            return render(request, 'experimentApp/createExperiment.html', {'experimentForm': experimentForm,
+                                                                           'error_message': 'Please enter a valid '
+                                                                                            'title and description'})
 
 
 # View to create ranking experiment on POST request. Gets necessary files and options, then creates models for the
 # experiment according to the options
 @login_required
-def createExperimentRK(request):
-    if request.method == 'POST':
-        experimentForm = ExperimentForm(request.POST)
+def createExperimentRK(request, sorted_files):
+    experimentForm = ExperimentForm(request.POST)
 
-        experimentFullForm = ExperimentForm(request.POST or None, request.FILES or None)
+    experimentFullForm = ExperimentForm(request.POST or None, request.FILES or None)
 
-        if experimentFullForm.is_valid():
-            experimentInstance = experimentForm.save(commit=False)
-            experimentInstance.question_type = 'RANKING'
-            experimentInstance.save()
+    if experimentFullForm.is_valid():
 
-            # Generates and saves experiment slug
-            experimentSlug = generateUniqueSlug()
-            ExperimentSlug.objects.create(experiment=experimentInstance, slug=experimentSlug)
+        # Save experiment details+options
+        experimentInstance, experimentSlug = saveExperimentInstance(request, experimentForm, 'RANKING')
 
-            # Save custom colour options
-            if request.POST.get("customColours"):
-                ExperimentCustomColours.objects.create(experiment=experimentInstance,
-                                                       text_colour=request.POST.get("textColourPicker"),
-                                                       background_colour=request.POST.get("backgroundColourPicker"))
-
-            # Save refresher options
-            if request.POST.get("radRef"):
-                time_shown = request.POST.get("timeVal")
-                if request.POST.get("refChoice") == "col":
-                    custom_colour = request.POST.get("colourpicker")
-                    experimentRefresher = ExperimentRefresher(experiment=experimentInstance,
-                                                              time_shown=time_shown, custom_colour=custom_colour,
-                                                              custom_image=None)
-                    experimentRefresher.save()
-                else:
-                    custom_image = request.FILES.get("refImage")
-                    if custom_image is not None:
-                        experimentRefresher = ExperimentRefresher(experiment=experimentInstance,
-                                                                  time_shown=time_shown, custom_colour="",
-                                                                  custom_image=custom_image)
-                        experimentRefresher.save()
-                    else:
-                        return render(request, 'experimentApp/createExperiment.html', {'experimentForm': experimentForm,
-                                                                                       'error_message': 'Please upload '
-                                                                                                        'a refresher image'})
-
-            # Save ranking options
-            if request.POST.get("rkChoiceRandomise"):
-                RankingOptions.objects.create(experiment=experimentInstance,
-                                          randomiseInitialOrdering=True)
-            else:
-                RankingOptions.objects.create(experiment=experimentInstance,
-                                              randomiseInitialOrdering=False)
-
-            # Sorts list of files into list of list(s), where each sublist contains files with same suffix
-            if request.POST.get("uploadChoice") == "file":
-                files = request.FILES.getlist('uploadFileName')
-                sorted_files = sortInputFiles(files, [])
-            else:
-                sorted_files = sortInputDirs(request)
-
-            # Randomise ordering if user chose
-            if request.POST.get("randomiseQuestionOption"):
-                random.shuffle(sorted_files)  # Randomises order of list
-
-            # Check each image set has consistent resolution
-            for file_set in sorted_files:
-                res = None
-                for file in file_set:
-
-                    im = Image.open(file)
-                    if res is None:
-                        res = im.size
-                    elif res != im.size:
-                        return render(request, 'experimentApp/createExperiment.html',
-                                      {'experimentForm': experimentForm,
-                                       'error_message': 'Please upload file sets with consistent resolutions'})
-
-            question_counter = 1
-            for file_set in sorted_files:
-
-                question = ExperimentQuestion(question_num=question_counter,
-                                              question_text='Question ' + str(question_counter),
-                                              experiment=experimentInstance)
-                question.save()
-                question_counter += 1
-
-                choice_counter = 0  # Separate counter used for choices, so when ground-truth enabled it is not included
-                for file in file_set:
-                    algorithm_name = file.name.split('_', 1)[1]  # Gets name of file after first '_'
-                    algorithm_name = algorithm_name.split('.')[0]  # Removes file extension
-
-                    if (request.POST.get("groundTruthOption") == "on") and ("input" in file.name):
-                        RankingGroundTruth.objects.create(question=question, choice_text="GT Choice",
-                                                          choice_image=file)
-                    else:
-                        Ranking.objects.create(question=question, choice_algorithm=algorithm_name,
-                                               choice_text="Choice " + str(choice_counter), choice_image=file)
-                        choice_counter += 1
-
-            return HttpResponseRedirect(reverse('experimentApp:experimentDetail', args=(experimentSlug,)))
-
+        # Save ranking options
+        if request.POST.get("rkChoiceRandomise"):
+            RankingOptions.objects.create(experiment=experimentInstance,
+                                      randomiseInitialOrdering=True)
         else:
-            return render(request, 'experimentApp/stageView.html',
-                          {'title': 'Error',
-                           'status_message': 'Error on requesting view: wrong request'
-                                             ' method. Please attempt to create an'
-                                             ' experiment again by navigating to home.'})
+            RankingOptions.objects.create(experiment=experimentInstance,
+                                          randomiseInitialOrdering=False)
+
+        question_counter = 1
+        for file_set in sorted_files:
+
+            question = ExperimentQuestion(question_num=question_counter,
+                                          question_text='Question ' + str(question_counter),
+                                          experiment=experimentInstance)
+            question.save()
+            question_counter += 1
+
+            choice_counter = 0  # Separate counter used for choices, so when ground-truth enabled it is not included
+            for file in file_set:
+                algorithm_name = file.name.split('_', 1)[1]  # Gets name of file after first '_'
+                algorithm_name = algorithm_name.split('.')[0]  # Removes file extension
+
+                if (request.POST.get("groundTruthOption") == "on") and ("input" in file.name):
+                    RankingGroundTruth.objects.create(question=question, choice_text="GT Choice",
+                                                      choice_image=file)
+                else:
+                    Ranking.objects.create(question=question, choice_algorithm=algorithm_name,
+                                           choice_text="Choice " + str(choice_counter), choice_image=file)
+                    choice_counter += 1
+
+        return HttpResponseRedirect(reverse('experimentApp:experimentDetail', args=(experimentSlug,)))
+
+    else:
+        if request.FILES.getlist('uploadFileName') is None:
+            return render(request, 'experimentApp/createExperiment.html', {'experimentForm': experimentForm,
+                                                                           'error_message': 'Please upload the '
+                                                                                            'images required for '
+                                                                                            'the experiment'})
+        else:
+            return render(request, 'experimentApp/createExperiment.html', {'experimentForm': experimentForm,
+                                                                           'error_message': 'Please enter a valid '
+                                                                                            'title and description'})
 
 
 # View to create rating experiment on POST request. Gets necessary files and options, then creates models for the
 # experiment according to the options
 @login_required
-def createExperimentRT(request):
-    if request.method == 'POST':
-        experimentForm = ExperimentForm(request.POST)
+def createExperimentRT(request, sorted_files):
+    experimentForm = ExperimentForm(request.POST)
 
-        experimentFullForm = ExperimentForm(request.POST or None, request.FILES or None)
+    experimentFullForm = ExperimentForm(request.POST or None, request.FILES or None)
 
-        if experimentFullForm.is_valid():
-            experimentInstance = experimentForm.save(commit=False)
-            experimentInstance.question_type = 'RATING'
-            experimentInstance.save()
+    if experimentFullForm.is_valid():
 
-            # Generates and saves experiment slug
-            experimentSlug = generateUniqueSlug()
-            ExperimentSlug.objects.create(experiment=experimentInstance, slug=experimentSlug)
+        # Save experiment details+options
+        experimentInstance, experimentSlug = saveExperimentInstance(request, experimentForm, 'RATING')
 
-            # Save custom colour options
-            if request.POST.get("customColours"):
-                ExperimentCustomColours.objects.create(experiment=experimentInstance,
-                                                       text_colour=request.POST.get("textColourPicker"),
-                                                       background_colour=request.POST.get("backgroundColourPicker"))
+        # Get options
+        ground_truth = request.POST.get("groundTruthOption") == "on"
 
-            # Save refresher options
-            if request.POST.get("radRef"):
-                time_shown = request.POST.get("timeVal")
-                if request.POST.get("refChoice") == "col":
-                    custom_colour = request.POST.get("colourpicker")
-                    experimentRefresher = ExperimentRefresher(experiment=experimentInstance,
-                                                              time_shown=time_shown, custom_colour=custom_colour,
-                                                              custom_image=None)
-                    experimentRefresher.save()
+        select_choice = request.POST.get("select_choice")
+        if select_choice is None:
+            return HttpResponse("Error: select option for rating")
+
+        range_lower_bound = request.POST.get("rtLowerBound")
+        range_upper_bound = request.POST.get("rtUpperBound")
+
+        question_counter = 1
+        for file_set in sorted_files:
+
+            question = ExperimentQuestion(question_num=question_counter,
+                                          question_text='Question ' + str(question_counter),
+                                          experiment=experimentInstance)
+            question.save()
+            question_counter += 1
+
+            choice_counter = 0  # Separate counter used for choices, so when ground-truth enabled it is not included
+            for file in file_set:
+                algorithm_name = file.name.split('_', 1)[1]  # Gets name of file after first '_'
+                algorithm_name = algorithm_name.split('.')[0]  # Removes file extension
+
+                if ground_truth and ("input" in file.name):
+                    RatingGroundTruth.objects.create(question=question, choice_text="Choice GT",
+                                                     choice_image=file)
                 else:
-                    custom_image = request.FILES.get("refImage")
-                    if custom_image is not None:
-                        experimentRefresher = ExperimentRefresher(experiment=experimentInstance,
-                                                                  time_shown=time_shown, custom_colour="",
-                                                                  custom_image=custom_image)
-                        experimentRefresher.save()
-                    else:
-                        return render(request, 'experimentApp/createExperiment.html', {'experimentForm': experimentForm,
-                                                                                       'error_message': 'Please upload '
-                                                                                                        'a refresher image'})
+                    Rating.objects.create(question=question, choice_algorithm=algorithm_name,
+                                          choice_text="Choice " + str(choice_counter), choice_image=file,
+                                          select_choice=select_choice,
+                                          range_lower_bound=range_lower_bound, range_upper_bound=range_upper_bound)
+                    choice_counter += 1
 
-            # Sorts list of files into list of list(s), where each sublist contains files with same suffix
-            if request.POST.get("uploadChoice") == "file":
-                files = request.FILES.getlist('uploadFileName')
-                sorted_files = sortInputFiles(files, [])
-            else:
-                sorted_files = sortInputDirs(request)
+        return HttpResponseRedirect(reverse('experimentApp:experimentDetail', args=(experimentSlug,)))
 
-            # Randomise ordering if user chose
-            if request.POST.get("randomiseQuestionOption"):
-                random.shuffle(sorted_files)  # Randomises order of list
-
-            # Check each image set has consistent resolution
-            for file_set in sorted_files:
-                res = None
-                for file in file_set:
-
-                    im = Image.open(file)
-                    if res is None:
-                        res = im.size
-                    elif res != im.size:
-                        return render(request, 'experimentApp/createExperiment.html',
-                                      {'experimentForm': experimentForm,
-                                       'error_message': 'Please upload file sets with consistent resolutions'})
-
-            # Get options
-            ground_truth = request.POST.get("groundTruthOption") == "on"
-
-            select_choice = request.POST.get("select_choice")
-            if select_choice is None:
-                return HttpResponse("Error: select option for rating")
-
-            range_lower_bound = request.POST.get("rtLowerBound")
-            range_upper_bound = request.POST.get("rtUpperBound")
-
-            question_counter = 1
-            for file_set in sorted_files:
-
-                question = ExperimentQuestion(question_num=question_counter,
-                                              question_text='Question ' + str(question_counter),
-                                              experiment=experimentInstance)
-                question.save()
-                question_counter += 1
-
-                choice_counter = 0  # Separate counter used for choices, so when ground-truth enabled it is not included
-                for file in file_set:
-                    algorithm_name = file.name.split('_', 1)[1]  # Gets name of file after first '_'
-                    algorithm_name = algorithm_name.split('.')[0]  # Removes file extension
-
-                    if ground_truth and ("input" in file.name):
-                        RatingGroundTruth.objects.create(question=question, choice_text="Choice GT",
-                                                         choice_image=file)
-                    else:
-                        Rating.objects.create(question=question, choice_algorithm=algorithm_name,
-                                              choice_text="Choice " + str(choice_counter), choice_image=file,
-                                              select_choice=select_choice,
-                                              range_lower_bound=range_lower_bound, range_upper_bound=range_upper_bound)
-                        choice_counter += 1
-
-            return HttpResponseRedirect(reverse('experimentApp:experimentDetail', args=(experimentSlug,)))
-
+    else:
+        if request.FILES.getlist('uploadFileName') is None:
+            return render(request, 'experimentApp/createExperiment.html', {'experimentForm': experimentForm,
+                                                                           'error_message': 'Please upload the '
+                                                                                            'images required for '
+                                                                                            'the experiment'})
         else:
-            return render(request, 'experimentApp/stageView.html',
-                          {'title': 'Error',
-                           'status_message': 'Error on requesting view: wrong request'
-                                             ' method. Please attempt to create an'
-                                             ' experiment again by navigating to home.'})
+            return render(request, 'experimentApp/createExperiment.html', {'experimentForm': experimentForm,
+                                                                           'error_message': 'Please enter a valid '
+                                                                                            'title and description'})
 
 
 # View to force users to sign consent form before they take experiment. Users are tracked on which experiment they are
@@ -623,6 +495,17 @@ def experimentQuestion(request, experiment_slug, question_num):
         if experiment.question_type == 'pairwise-comparison':
             choice_set = Pairwise.objects.filter(question=question)
 
+            # Check user has completed all previous questions for this experiment, attempt to fetch answer for each
+            # previous question
+            previous_questions_list = range(1, question_num)
+            for prev_question_num in previous_questions_list:
+                try:
+                    prev_question = get_object_or_404(ExperimentQuestion, experiment=experiment, question_num=prev_question_num)
+                    prev_choice_set = Pairwise.objects.filter(question=prev_question)
+                    get_object_or_404(PairwiseChoice, experimentRegister=experiment_register, pairwise__in=prev_choice_set)
+                except Http404:
+                    return HttpResponseRedirect(reverse('experimentApp:experimentQuestion', args=(experiment_slug, prev_question_num)))
+
             try:
                 groundTruth = get_object_or_404(PairwiseGroundTruth, question=question)
             except Http404:
@@ -676,6 +559,22 @@ def experimentQuestion(request, experiment_slug, question_num):
                                'background_colour': background_colour})
 
         elif experiment.question_type == 'RANKING':
+
+            # Check user has completed all previous questions for this experiment, attempt to fetch answer for each
+            # previous question
+            previous_questions_list = range(1, question_num)
+            for prev_question_num in previous_questions_list:
+                try:
+                    prev_question = get_object_or_404(ExperimentQuestion, experiment=experiment,
+                                                      question_num=prev_question_num)
+                    prev_choice_set = Ranking.objects.filter(question=prev_question)
+                    if not RankingChoice.objects.filter(experimentRegister=experiment_register, ranking__in=prev_choice_set).exists():
+                        raise Http404
+
+                except Http404:
+                    return HttpResponseRedirect(
+                        reverse('experimentApp:experimentQuestion', args=(experiment_slug, prev_question_num)))
+
             ranking_set = Ranking.objects.filter(question=question)
             ranking_set = list(ranking_set)
             random.shuffle(ranking_set)
@@ -704,6 +603,23 @@ def experimentQuestion(request, experiment_slug, question_num):
                                'background_colour': background_colour})
 
         elif experiment.question_type == 'RATING':
+
+            # Check user has completed all previous questions for this experiment, attempt to fetch answer for each
+            # previous question
+            previous_questions_list = range(1, question_num)
+            for prev_question_num in previous_questions_list:
+                try:
+                    prev_question = get_object_or_404(ExperimentQuestion, experiment=experiment,
+                                                      question_num=prev_question_num)
+                    prev_choice_set = Rating.objects.filter(question=prev_question)
+                    if not RatingChoice.objects.filter(experimentRegister=experiment_register,
+                                                        rating__in=prev_choice_set).exists():
+                        raise Http404
+
+                except Http404:
+                    return HttpResponseRedirect(
+                        reverse('experimentApp:experimentQuestion', args=(experiment_slug, prev_question_num)))
+
             rating_set = Rating.objects.filter(question=question)
             num_radio_choices = rating_set[0].range_upper_bound - rating_set[
                 0].range_lower_bound + 1  # Plus one as exclusive
