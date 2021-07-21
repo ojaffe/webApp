@@ -17,6 +17,5 @@ urlpatterns = [
     path('<str:experiment_slug>/<int:question_num>/', views.experimentQuestion, name='experimentQuestion'),
     path('<str:experiment_slug>/<int:question_num>/vote/', views.vote, name='vote'),
     path('<str:experiment_slug>/finish/', views.experimentFinish, name='experimentFinish'),
-    path('<str:experiment_slug>/results/', views.results, name='results'),
     path('<str:experiment_slug>>/results/download/', views.resultsDownload, name='resultsDownload'),
 ]
