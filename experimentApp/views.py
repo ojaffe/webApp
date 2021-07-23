@@ -1,4 +1,5 @@
 from django.contrib.auth.decorators import login_required
+from django.core.mail import send_mail, BadHeaderError, mail_admins
 from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.shortcuts import render, get_object_or_404
 from django.urls import reverse
@@ -7,7 +8,7 @@ from utils import sortInputFiles, generateUniqueSlug, sortInputDirs, saveExperim
 from .models import Experiment, ExperimentQuestion, Pairwise, PairwiseGroundTruth, Ranking, RankingChoice, Rating, \
     RatingChoice, ExperimentRegister, PairwiseChoice, RankingGroundTruth, RatingGroundTruth, ExperimentRefresher, \
     ExperimentSlug, ExperimentCustomColours, RankingOptions
-from .forms import ExperimentForm, OrderingForm
+from .forms import ExperimentForm, OrderingForm, EmailForm
 
 from PIL import Image
 
@@ -40,6 +41,33 @@ def helpView(request):
 # View of summary about such website
 def aboutView(request):
     return render(request, 'experimentApp/about.html')
+
+
+# View allowing users to contact administrators, configure this+settings to email all admin accounts on submission
+def contactView(request):
+    if request.method == 'GET':
+        emailForm = EmailForm()
+        return render(request, 'experimentApp/contact.html', {'emailForm': emailForm})
+    elif request.method == 'POST':
+        emailForm = EmailForm()
+        return render(request, 'experimentApp/contact.html', {'emailForm': emailForm,
+                                                              'errorMessage': 'Not implemented'})
+        emailForm = EmailForm(request.POST or None)
+
+        if emailForm.is_valid():
+            subject = emailForm.cleaned_data['subject']
+            message = emailForm.cleaned_data['message']
+            try:
+                mail_admins(subject, message)
+            except BadHeaderError:
+                return render(request, 'experimentApp/contact.html', {'emailForm': emailForm,
+                                                                      'errorMessage': 'Invalid header'})
+            else:
+                return render(request, 'experimentApp/contact.html', {'emailForm': emailForm,
+                                                                      'errorMessage': 'Sent successfully'})
+        else:
+            return render(request, 'experimentApp/contact.html', {'emailForm': emailForm,
+                                                                  'errorMessage': emailForm.errors})
 
 
 # View containing table of all previous experiments, s.t. user can access, delete or view results for any of them
@@ -406,7 +434,7 @@ def experimentConsent(request, experiment_slug):
             request.session['session_name'] = str(experimentRegister.pk)
 
         return HttpResponseRedirect(reverse('experimentApp:experimentQuestion', args=(experiment_slug, 1)))
-    else:
+    elif request.method == 'GET':
         return render(request, 'experimentApp/experimentConsent.html', {'experiment': experiment})
 
 

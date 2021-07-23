@@ -147,3 +147,9 @@ class RatingChoice(models.Model):
     experimentRegister = models.ForeignKey(ExperimentRegister, on_delete=models.CASCADE)
 
     rating_value = models.IntegerField()
+
+
+# Model to support form
+class EmailModel(models.Model):
+    subject = models.CharField(max_length=200)
+    message = models.CharField(max_length=1000)

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Index</title>
+    </head>
+
+    <body>
+
+        <noscript><h1 style="color: red;">Enable Javascript to use this application.</h1></noscript>
+
+        <!-- Scripts/stylesheets -->
+        {% load static %}
+        {% load widget_tweaks %}
+        <script type="text/javascript" src="{% static 'js/jquery.slim.min.js' %}"></script>
+
+        <!-- Bootstrap 4  and overwrite -->
+        <script type="text/javascript" src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.bundle.min.js"></script>
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+        <link rel="stylesheet" href="{% static 'css/page-css-override.css' %}">
+
+        {% include 'header.html' %}
+
+        <!-- Page Content -->
+        <div class="container">
+            <h1 class="mt-4">Contact Us</h1>
+            <p>If you would like to contact us for any reason, please fill in the below fields with your message and it will
+            be forwarded onto us.</p>
+
+            <form id="defaultexperiment_form_container" method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <!-- Email Form -->
+                {% for field in emailForm.visible_fields %}
+                    <div class="form-group">
+                        {{ field.label_tag }}
+                        {% render_field field class="form-control" %}
+                        {% if field.help_text %}
+                            <small class="form-text text-muted">{{ field.help_text }}</small>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+
+                <button type="submit" class="btn btn-outline-primary btn-lg mt-3" >Submit</button>
+            </form>
+
+        </div>
+    </body>
+</html>

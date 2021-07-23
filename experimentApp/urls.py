@@ -7,6 +7,7 @@ urlpatterns = [
     path('stage/', views.stageView, name='stageView'),
     path('help/', views.helpView, name='helpView'),
     path('about/', views.aboutView, name='aboutView'),
+    path('contact/', views.contactView, name='contactView'),
 
     path('previousExperiments/', views.previousExperimentView, name='previousExperimentView'),
     path('createExperiment/', views.createExperiment, name='createExperiment'),
