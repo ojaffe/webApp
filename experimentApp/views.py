@@ -454,11 +454,6 @@ def experimentDetail(request, experiment_slug):
     except Http404:
         experimentColours = False
 
-    # Get no. people who answered this experiment
-    no_answers = 0
-    if experiment.question_type == 'pairwise-comparison':
-        choices = PairwiseChoice.objects.filter(experimentRegister=experiment)
-
     return render(request, 'experimentApp/experimentDetail.html', {'experiment_slug': experiment_slug,
                                                                    'experiment_title': experiment.experiment_title,
                                                                    'experiment_description': experiment.experiment_description,
