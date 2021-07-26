@@ -58,8 +58,21 @@
             The title of an experiment will also be used by admins to identify an experiment from others when viewing,
                 all experiments, so choose their name carefully.</p>
 
-            <p>Images are required for every experiment. <b style="color: red">TODO</b></p>
-            <p>Images must have consistent naming and resolution <b style="color: red">TODO</b></p>
+            <p>Images are required for every experiment. When uploading images, they must be named <b>"[PREFIX]_[SUFFIX]"</b>, where the prefix is
+            the name of the original image and the suffix is the algorithm applied. Images can be organised in one of two ways:</p>
+
+            <ul>
+                <li>
+                    <b>By files</b> - click and select all images you want to upload
+                </li>
+                <li>
+                    <b>By directories</b> - upload each directory containing files separately
+                </li>
+            </ul>
+
+            <p>Images must have consistent naming, as described above, as well as consistent resolutions for each
+            set of files. Either of these options can be modified in the source code by removing the appropirate
+            function calls to parse the data.</p>
 
             <p>Currently, three different types of questions are supported for a given set of images:</p>
 
@@ -98,9 +111,6 @@
                 <li>
                     Randomise the ordering of the comparisons - The ordering of questions, and the NC2 comparisons if
                     chosen, will be randomised
-                </li>
-                <li>
-                    Add in comparisons with the same image 5% of the time - <b style="color: red">TODO</b>
                 </li>
             </ul>
 
@@ -170,15 +180,6 @@
                 download and query the results. Depending on the experiment type more columns may be added to the
                 .csv file, if so this will be explained to the user. The results are explained more in depth below.</p>
 
-            <p>Admins can also choose to delete experiments on this page - a confirmation is shown to help prevent
-                mistakes.</p>
-
-
-            <h3 class="mt-5">Experiment Results (A)</h3>
-            <p>This view contains displayed results for a specific experiment, as well as the option to download the
-            results in a .csv file. Depending on the experiment type more columns may be added to the
-                .csv file, if so this will be explained to the user. <b style="color: red">TODO</b></p>
-
             <p>For each experiment we want to know how each participant answered the questions, thus we need to be able
             to differentiate between several participants answering the experiment, perhaps simultaneously. To manage
             this we use <a href="https://docs.djangoproject.com/en/3.2/topics/http/sessions/">Django sessions</a>. Each
@@ -189,13 +190,18 @@
             if a participant has already "signed up" for an experiment and re-enters the consent form, they will be
                 registered under a new key, so their results will appear under a different user.</p>
 
+            <p>Admins can also choose to delete experiments on this page - a confirmation is shown to help prevent
+                mistakes.</p>
+
+
+
 
             <h3 class="mt-5">Experiment Consent</h3>
             <p>To navigate to this link participants must be given its URL, for convenience this is displayed to the
                 admin after they create the experiment, on the <i>Experiment Details</i> page.</p>
 
-            <p>Before a participant can begin an experiment, they are forced to check that they consent to several statements
-            (<b style="color: red">CHANGE</b>). This page also displays the title of the experiment, as well as its
+            <p>Before a participant can begin an experiment, they are forced to check that they consent to several statements.
+                This can be altered if required in the source code. This page also displays the title of the experiment, as well as its
                 description that was given when creating the experiment.</p>
 
             <p>After a participant has consented to everything and clicked the button, their client will be

@@ -27,12 +27,12 @@
             <p>Created on {{ pub_date }}</p>
 
             <p>
-                Experiment url: <b id="experimentURL">WEBSITEROOT{{ experiment_url }}</b>
+                Experiment url: <b id="experimentURL">WEBSITEROOT/experiment/{{ experiment_url }}/</b>
                 &nbsp;
                 <img src="/media/assets/copy.png" height="20px" onclick="copyURL()" style="cursor: pointer;">
             </p>
 
-            <p>Or can be found <a href="{{ experiment_url }}">here</a>.</p>
+            <p>Or can be found <a href=".">here</a>.</p>
 
             <h2 class="mt-4">About</h2>
             <p>{{ experiment_description }}</p>

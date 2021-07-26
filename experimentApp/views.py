@@ -193,32 +193,17 @@ def createExperimentPC(request, sorted_files):
                 # Separate counter used for choices, so when ground-truth enabled it isn't included
                 choice_counter = 0
 
-                # If user wants chance of comparing the same image
-                if (request.POST.get("pcCompareWithSame") == "on") and random.uniform(0, 1) < 0.05:
-                    algorithm_name = file_set[0].name.split('_', 1)[1]  # Gets name of file after first '_'
+                # Add all images to question, ground truth exists in separate model if required
+                for file in file_set:
+                    algorithm_name = file.name.split('_', 1)[1]  # Gets name of file after first '_'
                     algorithm_name = algorithm_name.split('.')[0]  # Removes file extension
-                    for file in file_set:
-
-                        if (request.POST.get("groundTruthOption") == "on") and ("input" in file.name):
-                            PairwiseGroundTruth.objects.create(question=question,
-                                                               choice_text="Ground Truth", choice_image=file_set[0])
-                        else:
-                            Pairwise.objects.create(question=question, choice_algorithm=algorithm_name,
-                                                    choice_text="Choice " + str(choice_counter),
-                                                    choice_image=file_set[0])
-                            choice_counter += 1
-
-                else:  # Otherwise add all images to question, ground truth exists in separate model if required
-                    for file in file_set:
-                        algorithm_name = file.name.split('_', 1)[1]  # Gets name of file after first '_'
-                        algorithm_name = algorithm_name.split('.')[0]  # Removes file extension
-                        if (request.POST.get("groundTruthOption") == "on") and ("input" in file.name):
-                            PairwiseGroundTruth.objects.create(question=question,
-                                                               choice_text="Ground Truth", choice_image=file)
-                        else:
-                            Pairwise.objects.create(question=question, choice_algorithm=algorithm_name,
-                                                    choice_text="Choice " + str(choice_counter), choice_image=file)
-                            choice_counter += 1
+                    if (request.POST.get("groundTruthOption") == "on") and ("input" in file.name):
+                        PairwiseGroundTruth.objects.create(question=question,
+                                                           choice_text="Ground Truth", choice_image=file)
+                    else:
+                        Pairwise.objects.create(question=question, choice_algorithm=algorithm_name,
+                                                choice_text="Choice " + str(choice_counter), choice_image=file)
+                        choice_counter += 1
 
             return HttpResponseRedirect(reverse('experimentApp:experimentDetail', args=(experimentSlug,)))
 
@@ -445,7 +430,7 @@ def experimentDetail(request, experiment_slug):
     # Get experiment associated with given slug
     experiment = get_object_or_404(ExperimentSlug, slug=experiment_slug).experiment
 
-    experiment_url = '/experiment/' + experiment_slug + '/'
+    experiment_url = experiment_slug
 
     # Check if custom colours used
     try:
