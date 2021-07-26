@@ -64,381 +64,304 @@
             {% if question_error_message %}<p class="colourText"><strong>{{ question_error_message }}</strong></p>{% endif %}
 
 
-            <!-- Pairwise Comparison Question -->
-            {% if question_type == 'pairwise-comparison' %}
-                {% if groundTruth %}
-                    <p class="colourText">Below is the original image.</p>
-                    <img src="{{ groundTruth.choice_image.url }}" alt="img" onclick="focusImage(this);" class="gt_image">
-                    <br>
-                {% endif %}
+            {% if experiment_type == 'image' %}
 
-                <p class="colourText">Select one image from the following which looks best to you. Spend time examining each one, you can enlarge an
-                    image to its original resolution by clicking on it.</p>
+                <!-- Pairwise Comparison Question -->
+                {% if question_type == 'pairwise-comparison' %}
+                    {% if groundTruth %}
+                        <p class="colourText">Below is the original image.</p>
+                        <img src="{{ groundTruth.choice_image.url }}" alt="img" onclick="focusImage(this);" class="gt_image">
+                        <br>
+                    {% endif %}
 
-                <form action="{% url 'experimentApp:vote' experiment_slug question.question_num %}" method="post">
-                    {% csrf_token %}
-
-                    <table>
-
-                        {% for row in choice_list %}
-                            <tr>
-                                {% for choice in row %}
-                                    <td style="padding: 5px 5px 5px 5px;">
-                                        <img src="{{ choice.choice_image.url }}" onclick="focusImage(this);" class="pc_images"/>
-
-                                        <p style="text-align: center;">
-                                            <input type="radio" name="choice" id="choice{{ forloop.counter }}{{forloop.parentloop.counter}}" value="{{ choice.id }}">
-                                            <label class="colourText" for="choice{{ forloop.counter }}{{forloop.parentloop.counter}}">{{ choice.choice_text }}</label>
-                                        </p>
-                                    </td>
-                            {% endfor %}
-                            </tr>
-                        {% endfor %}
-
-                    </table>
-                    <input type="submit" class="btn btn-outline-primary btn-lg" value="Next Question">
-                </form>
-
-                <script>
-                    // Resizes images to have max 4 on each horizontal row, only decreasing their resolution, will
-                    // not increase their resolution
-                    window.addEventListener('resize', resizeImages);
-                    resizeImages();
-
-                    function resizeImages() {
-                        var pc_images = document.getElementsByClassName("pc_images");
-                        var num_images_in_row = pc_images.length;
-
-                        if(num_images_in_row > 4) {
-                            num_images_in_row = 4;
-                        }
-
-                        const screen_width = $("#div_container").css('max-width');
-                        let image_width = ((parseInt(screen_width) - 30) / num_images_in_row) - 10;
-
-                        if(image_width < pc_images[0].width) {
-                            for(var i = 0; i < pc_images.length; i++) {
-                                pc_images[i].width = image_width;
-                            }
-
-                            const gt_image = document.getElementsByClassName("gt_image");
-                            if(gt_image[0] != undefined) {
-                                gt_image[0].width = image_width;
-                            }
-                        }
-                    }
-                </script>
-
-            {% endif %}
-
-
-            <!-- Ranking Question -->
-            {% if question_type == 'RANKING' %}
-
-                {% load static %}
-                <link rel="stylesheet" href="{% static 'css/table.css' %}">
-                <script type="text/javascript" src="{% static 'js/Sortable.min.js' %}"></script>
-
-                {% if groundTruth %}
-                    <p class="colourText">Below is the original image.</p>
-                    <br>
-                    <img src="{{ groundTruth.choice_image.url }}" alt="img"  onclick="focusImage(this);" class="gt_image">
-                    <br>
-                {% endif %}
-
-                <p class="colourText">Below is a list of images. Sort these images by how good they look to you. Place your best one at the top,
-                and the worst at the bottom. You change the ordering by holding and dragging the handle to the left of every
-                image. Spend time examining each one, you can enlarge an
-                    image to its original resolution by clicking on it.</p>
-
-                <form action="{% url 'experimentApp:vote' experiment_slug question.question_num %}" id="orderingForm" method="post">
-                    {% csrf_token %}
-
-                    <table>
-                        <tbody id="groups">
-                            {% for choice in ranking_set %}
-                                <tr data-lookup="{{ choice.pk }}">
-                                    <td style="padding: 0px 5px 0px 5px;">
-                                        <span class="handle"></span>
-                                    </td>
-                                    <td style="padding: 5px 5px 5px 5px;">
-                                        <p class="colourText">{{ choice.choice_text }}</p>
-                                        <img src="{{ choice.choice_image.url }}" onclick="focusImage(this); viewImage(this);" class="rk_images"
-                                        id="rankingChoice{{ forloop.counter }}"/>
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-
-                    <button id="saveOrdering" class="btn btn-outline-primary btn-lg mt-4" disabled>Save ordering</button>
-                    <input type="hidden" id="orderingInput" name="ordering">
-                </form>
-
-                <script>
-                    // Allows images to be dragged by the user to be sorted
-                    let sortable = Sortable.create(groups, {
-                        handle: '.handle',
-                        dragClass: 'dragged',
-                        chosenClass: 'sortableChosen',
-                    });
-
-                    const saveOrderingButton = document.getElementById('saveOrdering');
-                    const orderingForm = document.getElementById('orderingForm');
-                    const formInput = orderingForm.querySelector('#orderingInput');
-
-                    saveOrderingButton.addEventListener('click', saveOrdering);
-
-                    function saveOrdering() {
-                        const rows = document.getElementById("groups").querySelectorAll('tr');
-                        let ids = [];
-                        for (let row of rows) {
-                            ids.push(row.dataset.lookup);
-                        }
-                        formInput.value = ids.join(',');
-                        orderingForm.submit();
-                    }
-
-                    // Resizes images
-                    window.addEventListener('resize', resizeImages);
-                    resizeImages();
-
-                    function resizeImages() {
-                        const rk_images = document.getElementsByClassName("rk_images");
-                        const screen_width = $("#div_container").css('max-width');
-
-                        let image_width = -1;
-                        if(parseInt(screen_width, 10) >= 1400) {
-                            image_width = 200;
-                        } else if(parseInt(screen_width, 10) >= 1200) {
-                            image_width = 175;
-                        } else {
-                            image_width = 150;
-                        }
-
-                        for(var i = 0; i < rk_images.length; i++) {
-                            rk_images[i].width = image_width;
-                        }
-                        const gt_image = document.getElementsByClassName("gt_image");
-                        if(gt_image[0] != undefined) {
-                            gt_image[0].width = image_width;
-                        }
-                    }
-
-                    // Tracks which images haven't been viewed by the user
-                    const rk_images = document.getElementsByClassName("rk_images");
-                    var rk_images_not_viewed = [];
-                    for(var i = 0; i < rk_images.length; i++) {
-                        rk_images_not_viewed.push(rk_images[i].id);
-                    }
-
-                    function viewImage(image) {
-                        const index = rk_images_not_viewed.indexOf(image.id);
-                        if(index != -1) {
-                            rk_images_not_viewed.splice(index, 1);
-                        }
-                        if(rk_images_not_viewed.length == 0) {
-                            document.getElementById('saveOrdering').disabled = false;
-                        }
-                    }
-                </script>
-            {% endif %}
-
-
-            {% if question_type == 'RATING' %}
-                {% if groundTruth %}
-                    <p class="colourText">Below is the original image.</p>
-                    <br>
-                    <img src="{{ groundTruth.choice_image.url }}" alt="img" class="gt_image">
-                    <br>
-                {% endif %}
-
-                {% if select_choice == 'INPUT_FIELD' %}
-                    <p class="colourText">Choose value rating for each image between {{ range_lower_bound }} - {{ range_upper_bound }}</p>
-
+                    <p class="colourText">Select one image from the following which looks best to you. Spend time examining each one, you can enlarge an
+                        image to its original resolution by clicking on it.</p>
 
                     <form action="{% url 'experimentApp:vote' experiment_slug question.question_num %}" method="post">
                         {% csrf_token %}
+
                         <table>
-                            {% for row in rating_list %}
+
+                            {% for row in choice_list %}
                                 <tr>
-                                    {% for rating in row %}
+                                    {% for choice in row %}
                                         <td style="padding: 5px 5px 5px 5px;">
-                                            <img src="{{ rating.choice_image.url }}" onclick="focusImage(this);" class="rt_images" choice_text="{{ rating.choice_text }}"/>
+                                            <img src="{{ choice.choice_image.url }}" onclick="focusImage(this);" class="pc_images"/>
 
                                             <p style="text-align: center;">
-                                                <input name="rating" id="rating{{ forloop.counter }}{{forloop.parentloop.counter}}" class="rt_inputs">
-                                                <label class="colourText" for="rating{{ forloop.counter }}{{forloop.parentloop.counter}}">{{ rating.choice_text }}</label>
+                                                <input type="radio" name="choice" id="choice{{ forloop.counter }}{{forloop.parentloop.counter}}" value="{{ choice.id }}">
+                                                <label class="colourText" for="choice{{ forloop.counter }}{{forloop.parentloop.counter}}">{{ choice.choice_text }}</label>
                                             </p>
                                         </td>
                                 {% endfor %}
                                 </tr>
                             {% endfor %}
-                        </table>
-                        <input type="submit" class="btn btn-outline-primary btn-lg" value="Next Question">
-                    </form>
 
-                <script>
-                    // Adds reference from each image to respective input field
-                    const rt_image_list = document.getElementsByClassName("rt_images");
-                    const input_field_list = document.querySelectorAll('[id^="rating"]');
-
-                    for(var i = 0; i < rt_image_list.length; i++) {
-                        rt_image_list[i].input_field_ref = input_field_list[i];
-                    }
-
-                    // Images will be ordered in the code in their proper ordering, thus the following query
-                    // will simply get all image inputs in their order
-                    const rt_inputs = document.getElementsByClassName("rt_inputs");
-
-                    // Naming performed in javascript as images are ordered in [[row]] in Django
-                    for(var i = 0; i < rt_inputs.length; i++) {
-                        rt_inputs[i].name = "ratingChoice".concat(i.toString());
-                    }
-
-
-                    // Resizes images to have max 4 on each horizontal row, only decreasing their resolution, will
-                    // not increase their resolution
-                    window.addEventListener('resize', resizeImages);
-                    resizeImages();
-
-                    function resizeImages() {
-                        var rt_images = document.getElementsByClassName("rt_images");
-                        var num_images_in_row = rt_images.length;
-
-                        if(num_images_in_row > 4) {
-                            num_images_in_row = 4;
-                        }
-
-                        const screen_width = $("#div_container").css('max-width');
-                        let image_width = ((parseInt(screen_width) - 30) / num_images_in_row) - 10;
-
-                        if(image_width < rt_images[0].width) {
-                            for(var i = 0; i < rt_images.length; i++) {
-                                rt_images[i].width = image_width;
-                            }
-
-                            const gt_image = document.getElementsByClassName("gt_image");
-                            if(gt_image[0] != undefined) {
-                                gt_image[0].width = image_width;
-                            }
-                        }
-                    }
-                </script>
-
-
-                {% endif %}
-
-                {% if select_choice == 'RADIO' %}
-                    {% load experiment_extras %}
-                    <p class="colourText">Choose a rating for each image from the given values.</p>
-
-                    <form action="{% url 'experimentApp:vote' experiment_slug question.question_num %}" method="post">
-                        {% csrf_token %}
-                        <table>
-                            {% for choice in rating_list %}
-                            <tr>
-                                <td style="padding: 5px 5px 5px 5px; vertical-align: top;">
-                                    <img src="{{ choice.choice_image.url }}" onclick="focusImage(this);" class="rt_images" choice_text="{{ rating.choice_text }}"/>
-                                </td>
-                                <td style="padding: 5px 5px 5px 5px;">
-                                    {% for index in num_radio_choices|get_range %}
-                                        <input type="radio" name="{{ forloop.parentloop.counter0 }}ratingChoiceRadio{{ forloop.counter0 }}"
-                                               id="{{ forloop.parentloop.counter0 }}ratingChoiceRadio{{ forloop.counter0 }}">
-                                        <label class="colourText" for="{{ forloop.parentloop.counter0 }}ratingChoiceRadio{{ forloop.counter0 }}">{{ forloop.counter0 }}</label>
-                                        <br>
-                                    {% endfor %}
-                                </td>
-                            </tr>
-                            {% endfor %}
                         </table>
                         <input type="submit" class="btn btn-outline-primary btn-lg" value="Next Question">
                     </form>
 
                     <script>
-                        // Resizes images to constant size
-                        const rt_images = document.getElementsByClassName("rt_images");
-                        let image_width = 275;
+                        // Resizes images to have max 4 on each horizontal row, only decreasing their resolution, will
+                        // not increase their resolution
+                        window.addEventListener('resize', resizeImages);
+                        resizeImages();
 
-                        for(var i = 0; i < rt_images.length; i++) {
-                            rt_images[i].width = image_width;
+                        function resizeImages() {
+                            var pc_images = document.getElementsByClassName("pc_images");
+                            var num_images_in_row = pc_images.length;
+
+                            if(num_images_in_row > 4) {
+                                num_images_in_row = 4;
+                            }
+
+                            const screen_width = $("#div_container").css('max-width');
+                            let image_width = ((parseInt(screen_width) - 30) / num_images_in_row) - 10;
+
+                            if(image_width < pc_images[0].width) {
+                                for(var i = 0; i < pc_images.length; i++) {
+                                    pc_images[i].width = image_width;
+                                }
+
+                                const gt_image = document.getElementsByClassName("gt_image");
+                                if(gt_image[0] != undefined) {
+                                    gt_image[0].width = image_width;
+                                }
+                            }
+                        }
+                    </script>
+
+                {% endif %}
+
+
+                <!-- Ranking Question -->
+                {% if question_type == 'RANKING' %}
+
+                    {% load static %}
+                    <link rel="stylesheet" href="{% static 'css/table.css' %}">
+                    <script type="text/javascript" src="{% static 'js/Sortable.min.js' %}"></script>
+
+                    {% if groundTruth %}
+                        <p class="colourText">Below is the original image.</p>
+                        <br>
+                        <img src="{{ groundTruth.choice_image.url }}" alt="img"  onclick="focusImage(this);" class="gt_image">
+                        <br>
+                    {% endif %}
+
+                    <p class="colourText">Below is a list of images. Sort these images by how good they look to you. Place your best one at the top,
+                    and the worst at the bottom. You change the ordering by holding and dragging the handle to the left of every
+                    image. Spend time examining each one, you can enlarge an
+                        image to its original resolution by clicking on it.</p>
+
+                    <form action="{% url 'experimentApp:vote' experiment_slug question.question_num %}" id="orderingForm" method="post">
+                        {% csrf_token %}
+
+                        <table>
+                            <tbody id="groups">
+                                {% for choice in ranking_set %}
+                                    <tr data-lookup="{{ choice.pk }}">
+                                        <td style="padding: 0px 5px 0px 5px;">
+                                            <span class="handle"></span>
+                                        </td>
+                                        <td style="padding: 5px 5px 5px 5px;">
+                                            <p class="colourText">{{ choice.choice_text }}</p>
+                                            <img src="{{ choice.choice_image.url }}" onclick="focusImage(this); viewImage(this);" class="rk_images"
+                                            id="rankingChoice{{ forloop.counter }}"/>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+
+                        <button id="saveOrdering" class="btn btn-outline-primary btn-lg mt-4" disabled>Save ordering</button>
+                        <input type="hidden" id="orderingInput" name="ordering">
+                    </form>
+
+                    <script>
+                        // Allows images to be dragged by the user to be sorted
+                        let sortable = Sortable.create(groups, {
+                            handle: '.handle',
+                            dragClass: 'dragged',
+                            chosenClass: 'sortableChosen',
+                        });
+
+                        const saveOrderingButton = document.getElementById('saveOrdering');
+                        const orderingForm = document.getElementById('orderingForm');
+                        const formInput = orderingForm.querySelector('#orderingInput');
+
+                        saveOrderingButton.addEventListener('click', saveOrdering);
+
+                        function saveOrdering() {
+                            const rows = document.getElementById("groups").querySelectorAll('tr');
+                            let ids = [];
+                            for (let row of rows) {
+                                ids.push(row.dataset.lookup);
+                            }
+                            formInput.value = ids.join(',');
+                            orderingForm.submit();
                         }
 
-                        const gt_image = document.getElementsByClassName("gt_image");
-                        if(gt_image[0] != undefined) {
-                            gt_image[0].width = image_width;
+                        // Resizes images
+                        window.addEventListener('resize', resizeImages);
+                        resizeImages();
+
+                        function resizeImages() {
+                            const rk_images = document.getElementsByClassName("rk_images");
+                            const screen_width = $("#div_container").css('max-width');
+
+                            let image_width = -1;
+                            if(parseInt(screen_width, 10) >= 1400) {
+                                image_width = 200;
+                            } else if(parseInt(screen_width, 10) >= 1200) {
+                                image_width = 175;
+                            } else {
+                                image_width = 150;
+                            }
+
+                            for(var i = 0; i < rk_images.length; i++) {
+                                rk_images[i].width = image_width;
+                            }
+                            const gt_image = document.getElementsByClassName("gt_image");
+                            if(gt_image[0] != undefined) {
+                                gt_image[0].width = image_width;
+                            }
+                        }
+
+                        // Tracks which images haven't been viewed by the user
+                        const rk_images = document.getElementsByClassName("rk_images");
+                        var rk_images_not_viewed = [];
+                        for(var i = 0; i < rk_images.length; i++) {
+                            rk_images_not_viewed.push(rk_images[i].id);
+                        }
+
+                        function viewImage(image) {
+                            const index = rk_images_not_viewed.indexOf(image.id);
+                            if(index != -1) {
+                                rk_images_not_viewed.splice(index, 1);
+                            }
+                            if(rk_images_not_viewed.length == 0) {
+                                document.getElementById('saveOrdering').disabled = false;
+                            }
                         }
                     </script>
                 {% endif %}
 
 
-            {% if select_choice == 'SLIDER' %}
-                <p class="colourText">Choose value rating for each image between {{ range_lower_bound }} - {{ range_upper_bound }}</p>
+                {% if question_type == 'RATING' %}
+                    {% if groundTruth %}
+                        <p class="colourText">Below is the original image.</p>
+                        <br>
+                        <img src="{{ groundTruth.choice_image.url }}" alt="img" class="gt_image">
+                        <br>
+                    {% endif %}
 
-                <form action="{% url 'experimentApp:vote' experiment_slug question.question_num %}" method="post">
-                    {% csrf_token %}
-                    <table>
-                        {% for row in rating_list %}
-                            <tr>
-                                {% for rating in row %}
-                                    <td style="padding: 5px 5px 5px 5px;">
+                    {% if select_choice == 'INPUT_FIELD' %}
+                        <p class="colourText">Choose value rating for each image between {{ range_lower_bound }} - {{ range_upper_bound }}</p>
 
-                                        <img src="{{ rating.choice_image.url }}" onclick="focusImage(this);" class="rt_images" choice_text="{{ rating.choice_text }}"/>
 
-                                        <div class="slidecontainer" style="text-align: center">
-                                            <label for="ratingChoiceSlider{{ forloop.counter0 }}{{ forloop.parentloop.counter0 }}" class="colourText">{{ rating.choice_text }}</label>
-                                            <br>
-                                            <input type="range" min="{{ range_lower_bound }}" max="{{ range_upper_bound }}" class="slider"
-                                                   id="ratingChoiceSlider{{ forloop.counter0 }}{{ forloop.parentloop.counter0 }}"
-                                                   oninput="updateSliderValue.call(this)">
-                                            <p class="colourText">Value: <span id="sliderValue{{ forloop.counter0 }}{{ forloop.parentloop.counter0 }}"></span></p>
-                                        </div>
-                                    </td>
-                            {% endfor %}
-                            </tr>
-                        {% endfor %}
-                    </table>
-                    <input type="submit" class="btn btn-outline-primary btn-lg" value="Next Question">
-                </form>
+                        <form action="{% url 'experimentApp:vote' experiment_slug question.question_num %}" method="post">
+                            {% csrf_token %}
+                            <table>
+                                {% for row in rating_list %}
+                                    <tr>
+                                        {% for rating in row %}
+                                            <td style="padding: 5px 5px 5px 5px;">
+                                                <img src="{{ rating.choice_image.url }}" onclick="focusImage(this);" class="rt_images" choice_text="{{ rating.choice_text }}"/>
 
-                <script>
-                    // Dynamically displays value associated with each slider
-                    var rt_image_list = document.getElementsByClassName("rt_images");
-                    var slider = document.querySelectorAll('[id^="ratingChoiceSlider"]');
-                    var slider_value = document.querySelectorAll('[id^="sliderValue"]');
+                                                <p style="text-align: center;">
+                                                    <input name="rating" id="rating{{ forloop.counter }}{{forloop.parentloop.counter}}" class="rt_inputs">
+                                                    <label class="colourText" for="rating{{ forloop.counter }}{{forloop.parentloop.counter}}">{{ rating.choice_text }}</label>
+                                                </p>
+                                            </td>
+                                    {% endfor %}
+                                    </tr>
+                                {% endfor %}
+                            </table>
+                            <input type="submit" class="btn btn-outline-primary btn-lg" value="Next Question">
+                        </form>
 
-                    for(var i = 0; i < slider.length; i++) {
-                        slider[i].slider_val = slider_value[i];
-                        slider_value[i].innerHTML = slider[i].value;
+                    <script>
+                        // Adds reference from each image to respective input field
+                        const rt_image_list = document.getElementsByClassName("rt_images");
+                        const input_field_list = document.querySelectorAll('[id^="rating"]');
 
-                        // Name values so backend can query them in order
-                        slider[i].name = "ratingChoiceSlider".concat(i.toString());
-
-                        // Reference from image to slider
-                        rt_image_list[i].sliderRef = slider[i];
-                    }
-
-                    function updateSliderValue(e) {
-                        this.slider_val.innerHTML = this.value;
-                    }
-
-                    // Resizes images to have max 4 on each horizontal row, only decreasing their resolution, will
-                    // not increase their resolution
-                    window.addEventListener('resize', resizeImages);
-                    resizeImages();
-
-                    function resizeImages() {
-                        const rt_images = document.getElementsByClassName("rt_images");
-                        var num_images_in_row = rt_images.length;
-
-                        if(num_images_in_row > 4) {
-                            num_images_in_row = 4;
+                        for(var i = 0; i < rt_image_list.length; i++) {
+                            rt_image_list[i].input_field_ref = input_field_list[i];
                         }
 
-                        const screen_width = $("#div_container").css('max-width');
-                        let image_width = ((parseInt(screen_width) - 30) / num_images_in_row) - 10;
+                        // Images will be ordered in the code in their proper ordering, thus the following query
+                        // will simply get all image inputs in their order
+                        const rt_inputs = document.getElementsByClassName("rt_inputs");
 
-                        if(image_width < rt_images[0].width) {
+                        // Naming performed in javascript as images are ordered in [[row]] in Django
+                        for(var i = 0; i < rt_inputs.length; i++) {
+                            rt_inputs[i].name = "ratingChoice".concat(i.toString());
+                        }
+
+
+                        // Resizes images to have max 4 on each horizontal row, only decreasing their resolution, will
+                        // not increase their resolution
+                        window.addEventListener('resize', resizeImages);
+                        resizeImages();
+
+                        function resizeImages() {
+                            var rt_images = document.getElementsByClassName("rt_images");
+                            var num_images_in_row = rt_images.length;
+
+                            if(num_images_in_row > 4) {
+                                num_images_in_row = 4;
+                            }
+
+                            const screen_width = $("#div_container").css('max-width');
+                            let image_width = ((parseInt(screen_width) - 30) / num_images_in_row) - 10;
+
+                            if(image_width < rt_images[0].width) {
+                                for(var i = 0; i < rt_images.length; i++) {
+                                    rt_images[i].width = image_width;
+                                }
+
+                                const gt_image = document.getElementsByClassName("gt_image");
+                                if(gt_image[0] != undefined) {
+                                    gt_image[0].width = image_width;
+                                }
+                            }
+                        }
+                    </script>
+
+
+                    {% endif %}
+
+                    {% if select_choice == 'RADIO' %}
+                        {% load experiment_extras %}
+                        <p class="colourText">Choose a rating for each image from the given values.</p>
+
+                        <form action="{% url 'experimentApp:vote' experiment_slug question.question_num %}" method="post">
+                            {% csrf_token %}
+                            <table>
+                                {% for choice in rating_list %}
+                                <tr>
+                                    <td style="padding: 5px 5px 5px 5px; vertical-align: top;">
+                                        <img src="{{ choice.choice_image.url }}" onclick="focusImage(this);" class="rt_images" choice_text="{{ rating.choice_text }}"/>
+                                    </td>
+                                    <td style="padding: 5px 5px 5px 5px;">
+                                        {% for index in num_radio_choices|get_range %}
+                                            <input type="radio" name="{{ forloop.parentloop.counter0 }}ratingChoiceRadio{{ forloop.counter0 }}"
+                                                   id="{{ forloop.parentloop.counter0 }}ratingChoiceRadio{{ forloop.counter0 }}">
+                                            <label class="colourText" for="{{ forloop.parentloop.counter0 }}ratingChoiceRadio{{ forloop.counter0 }}">{{ forloop.counter0 }}</label>
+                                            <br>
+                                        {% endfor %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </table>
+                            <input type="submit" class="btn btn-outline-primary btn-lg" value="Next Question">
+                        </form>
+
+                        <script>
+                            // Resizes images to constant size
+                            const rt_images = document.getElementsByClassName("rt_images");
+                            let image_width = 275;
+
                             for(var i = 0; i < rt_images.length; i++) {
                                 rt_images[i].width = image_width;
                             }
@@ -447,12 +370,127 @@
                             if(gt_image[0] != undefined) {
                                 gt_image[0].width = image_width;
                             }
-                        }
-                    }
-                </script>
+                        </script>
+                    {% endif %}
+
+
+                    {% if select_choice == 'SLIDER' %}
+                        <p class="colourText">Choose value rating for each image between {{ range_lower_bound }} - {{ range_upper_bound }}</p>
+
+                        <form action="{% url 'experimentApp:vote' experiment_slug question.question_num %}" method="post">
+                            {% csrf_token %}
+                            <table>
+                                {% for row in rating_list %}
+                                    <tr>
+                                        {% for rating in row %}
+                                            <td style="padding: 5px 5px 5px 5px;">
+
+                                                <img src="{{ rating.choice_image.url }}" onclick="focusImage(this);" class="rt_images" choice_text="{{ rating.choice_text }}"/>
+
+                                                <div class="slidecontainer" style="text-align: center">
+                                                    <label for="ratingChoiceSlider{{ forloop.counter0 }}{{ forloop.parentloop.counter0 }}" class="colourText">{{ rating.choice_text }}</label>
+                                                    <br>
+                                                    <input type="range" min="{{ range_lower_bound }}" max="{{ range_upper_bound }}" class="slider"
+                                                           id="ratingChoiceSlider{{ forloop.counter0 }}{{ forloop.parentloop.counter0 }}"
+                                                           oninput="updateSliderValue.call(this)">
+                                                    <p class="colourText">Value: <span id="sliderValue{{ forloop.counter0 }}{{ forloop.parentloop.counter0 }}"></span></p>
+                                                </div>
+                                            </td>
+                                    {% endfor %}
+                                    </tr>
+                                {% endfor %}
+                            </table>
+                            <input type="submit" class="btn btn-outline-primary btn-lg" value="Next Question">
+                        </form>
+
+                        <script>
+                            // Dynamically displays value associated with each slider
+                            var rt_image_list = document.getElementsByClassName("rt_images");
+                            var slider = document.querySelectorAll('[id^="ratingChoiceSlider"]');
+                            var slider_value = document.querySelectorAll('[id^="sliderValue"]');
+
+                            for(var i = 0; i < slider.length; i++) {
+                                slider[i].slider_val = slider_value[i];
+                                slider_value[i].innerHTML = slider[i].value;
+
+                                // Name values so backend can query them in order
+                                slider[i].name = "ratingChoiceSlider".concat(i.toString());
+
+                                // Reference from image to slider
+                                rt_image_list[i].sliderRef = slider[i];
+                            }
+
+                            function updateSliderValue(e) {
+                                this.slider_val.innerHTML = this.value;
+                            }
+
+                            // Resizes images to have max 4 on each horizontal row, only decreasing their resolution, will
+                            // not increase their resolution
+                            window.addEventListener('resize', resizeImages);
+                            resizeImages();
+
+                            function resizeImages() {
+                                const rt_images = document.getElementsByClassName("rt_images");
+                                var num_images_in_row = rt_images.length;
+
+                                if(num_images_in_row > 4) {
+                                    num_images_in_row = 4;
+                                }
+
+                                const screen_width = $("#div_container").css('max-width');
+                                let image_width = ((parseInt(screen_width) - 30) / num_images_in_row) - 10;
+
+                                if(image_width < rt_images[0].width) {
+                                    for(var i = 0; i < rt_images.length; i++) {
+                                        rt_images[i].width = image_width;
+                                    }
+
+                                    const gt_image = document.getElementsByClassName("gt_image");
+                                    if(gt_image[0] != undefined) {
+                                        gt_image[0].width = image_width;
+                                    }
+                                }
+                            }
+                        </script>
+
+                    {% endif %}
+
+                {% endif %}
 
             {% endif %}
 
+            {% if experiment_type == 'video' %}
+                <div id="status">Going to play video1..</div>
+                <video id="videoPlayer" width="320" height="240" controls autoplay>
+                    <source src="" type="video/mp4">
+                </video>
+                <button onclick="switchVideoSrc();" type="button">Change Video</button>
+
+                <script>
+                    // https://stackoverflow.com/questions/26360255/switch-video-source-same-time-on-slider-js-html5-video
+                    const src_list = {{ video_urls|safe }};
+                    var statusElement = document.getElementById("status");
+                    var vid = document.getElementById("videoPlayer");
+                    var currentlyPlaying = 1;
+                    var currentPlayingTime;
+
+                    function switchVideoSrc() {
+                        currentPlayingTime = vid.currentTime;
+                        if (currentlyPlaying === 1) {
+                            vid.src = src_list[0];
+                            currentlyPlaying = 0;
+                            statusElement.innerText = 'Going to play video0..';
+                        } else {
+                            vid.src = src_list[1];
+                            currentlyPlaying = 1;
+                            statusElement.innerText = 'Going to play video1..';
+                        }
+                        vid.load();
+                        vid.addEventListener('loadedmetadata', function () {
+                            vid.currentTime = currentPlayingTime;
+                        }, false);
+                    }
+                </script>
             {% endif %}
 
         </div>

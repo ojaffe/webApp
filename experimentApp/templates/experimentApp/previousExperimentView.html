@@ -30,7 +30,7 @@
                         <tr>
 
                             <!-- Experiment Title -->
-                            <td style="padding: 0px 40px 30px 0px;">
+                            <td style="padding: 0px 40px 60px 0px;">
                                 <a href="{% url 'experimentApp:experimentDetail' experiment_details.slug %}">
                                     <h3>{{ experiment_details.title }}</h3>
                                 </a>
@@ -38,8 +38,18 @@
 
                             <td style="padding: 0px 40px 20px 0px;">
                                 <!-- Experiment type -->
+                                {% if experiment_details.experiment_type == 'image' %}
+                                    Image
+                                {% else %}
+                                    {% if experiment_details.experiment_type == 'video' %}
+                                        Video
+                                    {% endif %}
+                                {% endif %}
+                                <br>
+
+                                <!-- Question type -->
                                 {% if experiment_details.question_type == 'pairwise-comparison' %}
-                                    Pairwise Comparison
+                                    Pairwise-Comparison
                                 {% else %}
                                     {% if experiment_details.question_type == 'RANKING' %}
                                         Ranking
@@ -49,9 +59,9 @@
                                         {% endif %}
                                     {% endif %}
                                 {% endif %}
+                                <br>
 
                                 <!-- Creation date -->
-                                <br>
                                 {{ experiment_details.pub_date }}
                             </td>
                         </tr>

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>My test page</title>
+    </head>
+    <body>
+
+        <noscript><h1 style="color: red;">Enable Javascript to use this application.</h1></noscript>
+
+        {% load widget_tweaks %}
+
+        <!-- Scripts/stylesheets -->
+        {% load static %}
+        <script type="text/javascript" src="{% static 'js/jquery.slim.min.js' %}"></script>
+
+        <!-- Bootstrap 4  and overwrite -->
+        <script type="text/javascript" src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.bundle.min.js"></script>
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+        <link rel="stylesheet" href="{% static 'css/page-css-override.css' %}">
+
+
+        {% include 'header.html' %}
+
+        <!-- Page Content -->
+        <div class="container">
+
+            <h1 class="mt-4">Create Video Experiment</h1>
+
+            {% if error_message %}
+                <div class="mb-4">
+                    <b style="color:red;">{{ error_message }}</b>
+                </div>
+            {% endif %}
+
+            <form id="defaultexperiment_form_container" method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+
+                <!-- Experiment Form -->
+                {% for field in experimentForm.visible_fields %}
+                    <div class="form-group">
+                        {{ field.label_tag }}
+                        {% render_field field class="form-control" %}
+                        {% if field.help_text %}
+                            <small class="form-text text-muted">{{ field.help_text }}</small>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+
+
+                <!-- Images -->
+                <h4 class="mt-5">Upload Videos</h4>
+                Click the button below to upload the videos which will be used in the experiment. Filenames must be in the form
+                [Prefix]_[Suffix] where [Prefix] is the name of the video and [Suffix] is the name of the algorithm applied.
+                The file structure must be in one of two forms to be accepted:
+                <div class="mt-1">
+                    <ul>
+                        <li>
+                            <b>By filenames</b> - upload files
+                        </li>
+                        <li>
+                            <b>By directories</b> - upload each directory individually, each of which contains a video set
+                        </li>
+                    </ul>
+                </div>
+
+                <table id="uploadTable">
+                        <tr>
+                            <td style="padding: 0px 0px 0px 20px;">
+                                <input type="radio" id="uploadByName" name="uploadChoice" value="file" onclick="selectFileUp();" checked>
+                                <label for="uploadByName"><h4 class="mt-4">Upload by file name</h4></label>
+                            </td>
+                            <td style="padding: 0px 0px 0px 80px">
+                                <input type="file" name="uploadFileName" id="uploadByFileName" multiple>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 0px 0px 0px 20px;">
+                                <input type="radio" id="uploadByDir" name="uploadChoice" value="dir" onclick="selectDirUp();">
+                                <label for="uploadByDir"><h4 class="mt-4">Upload by directories</h4></label>
+                            </td>
+                            <td style="padding: 0px 0px 0px 80px">
+                                <input type="file" name="uploadDir0" class="dir_upload" webkitdirectory mozdirectory>
+
+                                <button type="button" id="addDirButton" class="dir_upload" onclick="appendDirRow();">Add Directory</button>
+                            </td>
+                        </tr>
+                </table>
+
+                <script>
+                    function selectFileUp() {
+                        document.querySelector("#uploadByFileName").disabled = false;
+                        dir_uploads = document.getElementsByClassName("dir_upload");
+                        for(var i = 0; i < dir_uploads.length; i++) {
+                            dir_uploads[i].disabled = true;
+                        }
+                    }
+
+                    function selectDirUp() {
+                        document.querySelector("#uploadByFileName").disabled = true;
+                        dir_uploads = document.getElementsByClassName("dir_upload");
+                        for(var i = 0; i < dir_uploads.length; i++) {
+                            dir_uploads[i].disabled = false;
+                        }
+                    }
+                    selectFileUp();
+
+                    // Append new row for uploading a new directory on click
+                    function appendDirRow() {
+                         upload_table = document.querySelector("#uploadTable");
+                         no_rows = upload_table.rows.length;
+
+
+                         // Add new row with necessary cells
+                         const row = document.querySelector("#uploadTable").insertRow(no_rows);
+                         const cell1 = row.insertCell(0);
+                         cell1.style.padding = "50px 0px 0px 20px";
+                         const cell2 = row.insertCell(1);
+                         cell2.style.padding = "0px 0px 0px 80px";
+
+                         // Insert new elements into table cell
+                         var new_upload_input = document.createElement("input");
+                         new_upload_input.type = "file";
+                         new_upload_input.multiple = true;
+                         new_upload_input.webkitdirectory = true;
+                         new_upload_input.mozdirectory = true;
+                         new_upload_input.classList.add("dir_upload");
+                         new_upload_input.name = "uploadDir" + (upload_table.rows.length - 2).toString(); // Minus two as we don't count the first row (other option) and it starts counting from 1
+                         cell2.appendChild(new_upload_input);
+
+                         // Add delete button to new row
+                         var new_delete_button = document.createElement("button");
+                         new_delete_button.innerHTML = "Delete Directory Upload";
+                         new_delete_button.type = "button";
+                         new_delete_button.rowIndex = upload_table.rows.length - 1; // Reference to this buttons row index, minus one as it starts counting from 0
+                         new_delete_button.classList.add("mr-4");
+                         new_delete_button.classList.add("dir_upload");
+                         new_delete_button.setAttribute('onclick','deleteDirRow(this);');
+                         cell2.appendChild(new_delete_button);
+
+                         // Remove add button from old row, add to new
+                         const button = document.querySelector("#addDirButton");
+                         button.remove();
+                         cell2.appendChild(button);
+
+                         // Add references from row to upload and delete buttons
+                         row.upload_button = new_upload_input;
+                         row.delete_button = new_delete_button;
+                    }
+
+                    function deleteDirRow(e) {
+                        // Move add button to row above if deleting last row
+                        if(e.rowIndex == document.querySelector("#uploadTable").rows.length - 1) {
+                            const button = document.querySelector("#addDirButton");
+                            button.remove();
+                            document.querySelector("#uploadTable").rows[e.rowIndex - 1].cells[1].appendChild(button);
+                        }
+
+                        // Delete row
+                        document.querySelector("#uploadTable").deleteRow(e.rowIndex);
+
+                        // Update names and row references
+                        rows = document.querySelector("#uploadTable").rows;
+                        for(var i = 2; i < rows.length; i++) {
+                            rows[i].upload_button.name = "uploadDir" + (i - 1).toString();
+                            rows[i].delete_button.rowIndex = i; // Offset by 1, we don't want to delete other option
+                        }
+                    }
+                </script>
+
+                <button type="submit" class="btn btn-outline-primary btn-lg mt-5" >Create Experiment</button>
+
+            </form>
+
+        </div>
+
+    </body>
+</html>

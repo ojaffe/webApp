@@ -9,6 +9,7 @@ class Experiment(models.Model):
     experiment_description = models.CharField(max_length=500)
     pub_date = models.DateTimeField('date created', default=now)
 
+    experiment_type = models.CharField(max_length=50)  # 'image' 'video'
     question_type = models.CharField(max_length=50)  # 'pairwise-comparison' 'ranking' 'rating'
 
     def __str__(self):
@@ -153,3 +154,11 @@ class RatingChoice(models.Model):
 class EmailModel(models.Model):
     subject = models.CharField(max_length=200)
     message = models.CharField(max_length=1000)
+
+
+class VideoPairwise(models.Model):
+    question = models.ForeignKey(ExperimentQuestion, on_delete=models.CASCADE)
+
+    choice_algorithm = models.CharField(max_length=200)  # Name of algorithm applied to image
+    choice_text = models.CharField(max_length=200)
+    choice_video = models.FileField(upload_to='videos/')
