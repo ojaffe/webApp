@@ -10,8 +10,7 @@ urlpatterns = [
     path('contact/', views.contactView, name='contactView'),
 
     path('previousExperiments/', views.previousExperimentView, name='previousExperimentView'),
-    path('createImageExperiment/', views.createImageExperiment, name='createImageExperiment'),
-    path('createVideoExperiment/', views.createVideoExperiment, name='createVideoExperiment'),
+    path('createExperiment/', views.createExperiment, name='createExperiment'),
 
     path('<str:experiment_slug>/', views.experimentConsent, name='experimentConsent'),
     path('<str:experiment_slug>/detail', views.experimentDetail, name='experimentDetail'),

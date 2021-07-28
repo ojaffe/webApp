@@ -8,6 +8,7 @@ db.sqlite3
 webapp/settings.py
 media/choiceImages
 media/refresherImages
+media/videos
 
 # PyCharm #
 .idea/

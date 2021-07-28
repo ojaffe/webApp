@@ -90,10 +90,10 @@ def previousExperimentView(request):
 # Renders experiment creation on GET request. POST requests after creating experiment should be redirected to other
 # view, alert user if not
 @login_required
-def createImageExperiment(request):
+def createExperiment(request):
     if request.method == 'GET':
         experimentForm = ExperimentForm()
-        return render(request, 'experimentApp/createImageExperiment.html', {'experimentForm': experimentForm})
+        return render(request, 'experimentApp/createExperiment.html', {'experimentForm': experimentForm})
     elif request.method == 'POST':
         experimentFullForm = ExperimentForm(request.POST or None)
 
@@ -104,11 +104,11 @@ def createImageExperiment(request):
             experimentForm = ExperimentForm()
             if request.POST.get("uploadChoice") == "file":
                 if len(request.FILES.getlist('uploadFileName')) == 0:
-                    return render(request, 'experimentApp/createImageExperiment.html', {'experimentForm': experimentForm,
+                    return render(request, 'experimentApp/createExperiment.html', {'experimentForm': experimentForm,
                                                                                    'error_message': 'Please upload files'})
             else:
                 if len(request.FILES.getlist('uploadDir0')) == 0:
-                    return render(request, 'experimentApp/createImageExperiment.html', {'experimentForm': experimentForm,
+                    return render(request, 'experimentApp/createExperiment.html', {'experimentForm': experimentForm,
                                                                                    'error_message': 'Please upload files'})
 
             # Sorts list of files into list of list(s), where each sublist contains files with same suffix
@@ -118,23 +118,24 @@ def createImageExperiment(request):
             else:
                 sorted_files = sortInputDirs(request)
 
-            # Check each image set has consistent resolution
-            for file_set in sorted_files:
-                res = None
-                for file in file_set:
+            # Check each image set has consistent resolution if image experiment
+            if request.POST.get("experimentType") == 'image':
+                for file_set in sorted_files:
+                    res = None
+                    for file in file_set:
 
-                    im = Image.open(file)
-                    if res is None:
-                        res = im.size
-                    elif res != im.size:
-                        return render(request, 'experimentApp/createImageExperiment.html',
-                                      {'experimentForm': experimentForm,
-                                       'error_message': 'Please upload file sets with consistent resolutions'})
+                        im = Image.open(file)
+                        if res is None:
+                            res = im.size
+                        elif res != im.size:
+                            return render(request, 'experimentApp/createExperiment.html',
+                                          {'experimentForm': experimentForm,
+                                           'error_message': 'Please upload file sets with consistent resolutions'})
 
             # Check user has uploaded refresher image if they have selected the option to include one
             if request.POST.get("radRef"):
                 if request.POST.get("refChoice") == "im" and request.FILES.get("refImage") is None:
-                    return render(request, 'experimentApp/createImageExperiment.html', {'experimentForm': experimentForm,
+                    return render(request, 'experimentApp/createExperiment.html', {'experimentForm': experimentForm,
                                                                                    'error_message': 'Please upload '
                                                                                                     'a refresher image'})
 
@@ -145,16 +146,16 @@ def createImageExperiment(request):
             # Redirect to helper function depending on type of questions
             question_type = request.POST.get("questionType")
             if question_type == "pc":
-                return createImageExperimentPC(request, sorted_files)
+                return createExperimentPC(request, sorted_files)
             elif question_type == "rk":
-                return createImageExperimentRK(request, sorted_files)
+                return createExperimentRK(request, sorted_files)
             elif question_type == "rt":
-                return createImageExperimentRT(request, sorted_files)
+                return createExperimentRT(request, sorted_files)
         else:
 
             # Otherwise render same view with appropriate error message
             experimentForm = ExperimentForm()
-            return render(request, 'experimentApp/createImageExperiment.html', {'experimentForm': experimentForm,
+            return render(request, 'experimentApp/createExperiment.html', {'experimentForm': experimentForm,
                                                                                'error_message': 'Please enter a valid '
                                                                                                 'title and description'})
 
@@ -168,7 +169,7 @@ def createImageExperiment(request):
 # View to create pairwise-comparison experiment on POST request from experiment creation. Creates respective models
 # depending on options the user specified
 @login_required
-def createImageExperimentPC(request, sorted_files):
+def createExperimentPC(request, sorted_files):
     experimentForm = ExperimentForm(request.POST)
 
     experimentFullForm = ExperimentForm(request.POST or None)
@@ -176,7 +177,7 @@ def createImageExperimentPC(request, sorted_files):
     if experimentFullForm.is_valid():
 
         # Save experiment details+options
-        experimentInstance, experimentSlug = saveExperimentInstance(request, experimentForm, 'image', 'pairwise-comparison')
+        experimentInstance, experimentSlug = saveExperimentInstance(request, experimentForm, request.POST.get("experimentType"), 'pairwise-comparison')
 
         # If user has chosen to compare same image from different algorithms
         algor_choice = request.POST['pcAlgorChoice']
@@ -265,12 +266,12 @@ def createImageExperimentPC(request, sorted_files):
 
     else:
         if request.FILES.getlist('uploadFileName') is None:
-            return render(request, 'experimentApp/createImageExperiment.html', {'experimentForm': experimentForm,
+            return render(request, 'experimentApp/createExperiment.html', {'experimentForm': experimentForm,
                                                                            'error_message': 'Please upload the '
                                                                                             'images required for '
                                                                                             'the experiment'})
         else:
-            return render(request, 'experimentApp/createImageExperiment.html', {'experimentForm': experimentForm,
+            return render(request, 'experimentApp/createExperiment.html', {'experimentForm': experimentForm,
                                                                            'error_message': 'Please enter a valid '
                                                                                             'title and description'})
 
@@ -278,7 +279,7 @@ def createImageExperimentPC(request, sorted_files):
 # View to create ranking experiment on POST request. Gets necessary files and options, then creates models for the
 # experiment according to the options
 @login_required
-def createImageExperimentRK(request, sorted_files):
+def createExperimentRK(request, sorted_files):
     experimentForm = ExperimentForm(request.POST)
 
     experimentFullForm = ExperimentForm(request.POST or None, request.FILES or None)
@@ -286,7 +287,7 @@ def createImageExperimentRK(request, sorted_files):
     if experimentFullForm.is_valid():
 
         # Save experiment details+options
-        experimentInstance, experimentSlug = saveExperimentInstance(request, experimentForm, 'image', 'RANKING')
+        experimentInstance, experimentSlug = saveExperimentInstance(request, experimentForm, request.POST.get("experimentType"), 'RANKING')
 
         # Save ranking options
         if request.POST.get("rkChoiceRandomise"):
@@ -322,12 +323,12 @@ def createImageExperimentRK(request, sorted_files):
 
     else:
         if request.FILES.getlist('uploadFileName') is None:
-            return render(request, 'experimentApp/createImageExperiment.html', {'experimentForm': experimentForm,
+            return render(request, 'experimentApp/createExperiment.html', {'experimentForm': experimentForm,
                                                                            'error_message': 'Please upload the '
                                                                                             'images required for '
                                                                                             'the experiment'})
         else:
-            return render(request, 'experimentApp/createImageExperiment.html', {'experimentForm': experimentForm,
+            return render(request, 'experimentApp/createExperiment.html', {'experimentForm': experimentForm,
                                                                            'error_message': 'Please enter a valid '
                                                                                             'title and description'})
 
@@ -335,7 +336,7 @@ def createImageExperimentRK(request, sorted_files):
 # View to create rating experiment on POST request. Gets necessary files and options, then creates models for the
 # experiment according to the options
 @login_required
-def createImageExperimentRT(request, sorted_files):
+def createExperimentRT(request, sorted_files):
     experimentForm = ExperimentForm(request.POST)
 
     experimentFullForm = ExperimentForm(request.POST or None, request.FILES or None)
@@ -343,7 +344,7 @@ def createImageExperimentRT(request, sorted_files):
     if experimentFullForm.is_valid():
 
         # Save experiment details+options
-        experimentInstance, experimentSlug = saveExperimentInstance(request, experimentForm, 'image', 'RATING')
+        experimentInstance, experimentSlug = saveExperimentInstance(request, experimentForm, request.POST.get("experimentType"), 'RATING')
 
         # Get options
         ground_truth = request.POST.get("groundTruthOption") == "on"
@@ -383,80 +384,14 @@ def createImageExperimentRT(request, sorted_files):
 
     else:
         if request.FILES.getlist('uploadFileName') is None:
-            return render(request, 'experimentApp/createImageExperiment.html', {'experimentForm': experimentForm,
+            return render(request, 'experimentApp/createExperiment.html', {'experimentForm': experimentForm,
                                                                            'error_message': 'Please upload the '
                                                                                             'images required for '
                                                                                             'the experiment'})
         else:
-            return render(request, 'experimentApp/createImageExperiment.html', {'experimentForm': experimentForm,
+            return render(request, 'experimentApp/createExperiment.html', {'experimentForm': experimentForm,
                                                                            'error_message': 'Please enter a valid '
                                                                                             'title and description'})
-
-
-# View for user to create experiments that compare videos
-def createVideoExperiment(request):
-    if request.method == 'GET':
-        experimentForm = ExperimentForm()
-        return render(request, 'experimentApp/createVideoExperiment.html', {'experimentForm': experimentForm})
-    elif request.method == 'POST':
-        experimentFullForm = ExperimentForm(request.POST or None)
-
-        # If data and options chosen by user are valid
-        if experimentFullForm.is_valid():
-
-            # Checks files are uploaded for selected choice
-            experimentForm = ExperimentForm()
-            if request.POST.get("uploadChoice") == "file":
-                if len(request.FILES.getlist('uploadFileName')) == 0:
-                    return render(request, 'experimentApp/createImageExperiment.html', {'experimentForm': experimentForm,
-                                                                                   'error_message': 'Please upload files'})
-            else:
-                if len(request.FILES.getlist('uploadDir0')) == 0:
-                    return render(request, 'experimentApp/createImageExperiment.html', {'experimentForm': experimentForm,
-                                                                                   'error_message': 'Please upload files'})
-
-            # Sorts list of files into list of list(s), where each sublist contains files with same suffix
-            if request.POST.get("uploadChoice") == "file":
-                files = request.FILES.getlist('uploadFileName')
-                sorted_files = sortInputFiles(files, [])
-            else:
-                sorted_files = sortInputDirs(request)
-
-            # Save experiment details+options
-            experimentForm = ExperimentForm(request.POST)
-            experimentInstance, experimentSlug = saveExperimentInstance(request, experimentForm,
-                                                                        'video', 'pairwise-comparison')
-            # Create questions+choices
-            question_counter = 1
-            for file_set in sorted_files:
-
-                question = ExperimentQuestion.objects.create(question_num=question_counter,
-                                                             question_text='Question ' + str(question_counter),
-                                                             experiment=experimentInstance)
-                question.save()
-                question_counter += 1
-
-                # Separate counter used for choices, so when ground-truth enabled it isn't included
-                choice_counter = 0
-
-                # Add all images to question, ground truth exists in separate model if required
-                for file in file_set:
-                    algorithm_name = file.name.split('_', 1)[1]  # Gets name of file after first '_'
-                    algorithm_name = algorithm_name.split('.')[0]  # Removes file extension
-
-                    VideoPairwise.objects.create(question=question, choice_algorithm=algorithm_name,
-                                                choice_text="Choice " + str(choice_counter), choice_video=file)
-                    choice_counter += 1
-
-            return HttpResponseRedirect(reverse('experimentApp:experimentDetail', args=(experimentSlug,)))
-
-        else:
-
-            # Otherwise render same view with appropriate error message
-            experimentForm = ExperimentForm()
-            return render(request, 'experimentApp/createImageExperiment.html', {'experimentForm': experimentForm,
-                                                                               'error_message': 'Please enter a valid '
-                                                                                                'title and description'})
 
 
 # View to force users to sign consent form before they take experiment. Users are tracked on which experiment they are
@@ -523,9 +458,11 @@ def deleteExperimentView(request, experiment_slug):
     return HttpResponseRedirect(reverse('experimentApp:index'))
 
 
-# Generic view to process data then serve correct question depending on experiment and question type
+# Function to process request for image comparison question and serve correct question data in format for front end
+# to parse
 def experimentQuestion(request, experiment_slug, question_num):
     experiment = get_object_or_404(ExperimentSlug, slug=experiment_slug).experiment
+    experiment_type = experiment.experiment_type
     question = get_object_or_404(ExperimentQuestion, experiment=experiment, question_num=question_num)
 
     # Get error message if exists, then delete from user session
@@ -551,271 +488,261 @@ def experimentQuestion(request, experiment_slug, question_num):
                       {'title': 'Error',
                        'status_message': 'Invalid session: Please sign up for the experiment'})
     else:
-        if experiment.experiment_type == 'image':
-            return experimentQuestionImage(request, experiment_slug, question_num, experiment, question, error_message, experiment_register)
-        elif experiment.experiment_type == 'video':
-            return experimentQuestionVideo(request, experiment_slug, question_num, experiment, question, error_message, experiment_register)
 
-
-# Function to process request for image comparison question and serve correct question data in format for front end
-# to parse
-def experimentQuestionImage(request, experiment_slug, question_num, experiment, question, error_message, experiment_register):
-    experiment = get_object_or_404(ExperimentSlug, slug=experiment_slug).experiment
-    question = get_object_or_404(ExperimentQuestion, experiment=experiment, question_num=question_num)
-
-    # Get custom text+background colours associated with experiment if exists
-    try:
-        experimentColours = get_object_or_404(ExperimentCustomColours, experiment=experiment)
-        text_colour = experimentColours.text_colour
-        background_colour = experimentColours.background_colour
-    except Http404:
-        text_colour = None
-        background_colour = None
-
-    # Get refresher image associated with experiment if exists
-    try:
-        experimentRefresher = get_object_or_404(ExperimentRefresher, experiment=experiment)
-        time_shown = experimentRefresher.time_shown
-        custom_colour = experimentRefresher.custom_colour
-        custom_image = experimentRefresher.custom_image
-    except Http404:
-        time_shown = None
-        custom_colour = None
-        custom_image = None
-
-
-    if experiment.question_type == 'pairwise-comparison':
-        choice_set = Pairwise.objects.filter(question=question)
-
-        # Check user has completed all previous questions for this experiment, attempt to fetch answer for each
-        # previous question
-        previous_questions_list = range(1, question_num)
-        for prev_question_num in previous_questions_list:
-            try:
-                prev_question = get_object_or_404(ExperimentQuestion, experiment=experiment,
-                                                  question_num=prev_question_num)
-                prev_choice_set = Pairwise.objects.filter(question=prev_question)
-                get_object_or_404(PairwiseChoice, experimentRegister=experiment_register, pairwise__in=prev_choice_set)
-            except Http404:
-                return HttpResponseRedirect(
-                    reverse('experimentApp:experimentQuestion', args=(experiment_slug, prev_question_num)))
-
+        # Get custom text+background colours associated with experiment if exists
         try:
-            groundTruth = get_object_or_404(PairwiseGroundTruth, question=question)
+            experimentColours = get_object_or_404(ExperimentCustomColours, experiment=experiment)
+            text_colour = experimentColours.text_colour
+            background_colour = experimentColours.background_colour
         except Http404:
+            text_colour = None
+            background_colour = None
 
-            # Since we limit 4 choices per row on the website, we organise the data to be manipulated easier
-            choice_list = []
-            row = []
-            for index, choice in enumerate(choice_set):
-                if index % 4 == 0 and index != 0:
-                    choice_list.append(row)
-                    row = []
-                row.append(choice)
-
-            # Add on remaining row, even if not "full" to 4 choices, if not empty
-            if row:
-                choice_list.append(row)
-
-            return render(request, 'experimentApp/experimentQuestion.html',
-                          {'experiment_type': 'image', 'question_type': experiment.question_type, 'question': question,
-                           'choice_list': choice_list,
-                           'experiment_slug': experiment_slug, 'question_error_message': error_message,
-                           'time_shown': time_shown,
-                           'rf_colour': custom_colour,
-                           'rf_image': custom_image,
-                           'text_colour': text_colour,
-                           'background_colour': background_colour})
-        else:
-
-            # Since we limit 4 choices per row on the website, we organise the data to be manipulated easier
-            choice_list = []
-            row = []
-            for index, choice in enumerate(choice_set):
-                if index % 4 == 0 and index != 0:
-                    choice_list.append(row)
-                    row = []
-                row.append(choice)
-
-            # Add on remaining row, even if not "full" to 4 choices, if not empty
-            if row:
-                choice_list.append(row)
-
-            return render(request, 'experimentApp/experimentQuestion.html',
-                          {'experiment_type': 'image', 'question_type': experiment.question_type, 'question': question,
-                           'choice_list': choice_list,
-                           'experiment_slug': experiment_slug, 'groundTruth': groundTruth,
-                           'question_error_message': error_message,
-                           'time_shown': time_shown,
-                           'rf_colour': custom_colour,
-                           'rf_image': custom_image,
-                           'text_colour': text_colour,
-                           'background_colour': background_colour})
-
-    elif experiment.question_type == 'RANKING':
-
-        # Check user has completed all previous questions for this experiment, attempt to fetch answer for each
-        # previous question
-        previous_questions_list = range(1, question_num)
-        for prev_question_num in previous_questions_list:
-            try:
-                prev_question = get_object_or_404(ExperimentQuestion, experiment=experiment,
-                                                  question_num=prev_question_num)
-                prev_choice_set = Ranking.objects.filter(question=prev_question)
-                if not RankingChoice.objects.filter(experimentRegister=experiment_register,
-                                                    ranking__in=prev_choice_set).exists():
-                    raise Http404
-
-            except Http404:
-                return HttpResponseRedirect(
-                    reverse('experimentApp:experimentQuestion', args=(experiment_slug, prev_question_num)))
-
-        ranking_set = Ranking.objects.filter(question=question)
-        ranking_set = list(ranking_set)
-        random.shuffle(ranking_set)
-
+        # Get refresher image associated with experiment if exists
         try:
-            groundTruth = get_object_or_404(RankingGroundTruth, question=question)
+            experimentRefresher = get_object_or_404(ExperimentRefresher, experiment=experiment)
+            time_shown = experimentRefresher.time_shown
+            custom_colour = experimentRefresher.custom_colour
+            custom_image = experimentRefresher.custom_image
         except Http404:
-            return render(request, 'experimentApp/experimentQuestion.html',
-                          {'experiment_type': 'image', 'question_type': experiment.question_type, 'question': question,
-                           'ranking_set': ranking_set, 'experiment_slug': experiment_slug,
-                           'question_error_message': error_message,
-                           'time_shown': time_shown,
-                           'rf_colour': custom_colour,
-                           'rf_image': custom_image,
-                           'text_colour': text_colour,
-                           'background_colour': background_colour})
-        else:
-            return render(request, 'experimentApp/experimentQuestion.html',
-                          {'experiment_type': 'image', 'question_type': experiment.question_type, 'question': question,
-                           'ranking_set': ranking_set, 'experiment_slug': experiment_slug, 'groundTruth': groundTruth,
-                           'question_error_message': error_message,
-                           'time_shown': time_shown,
-                           'rf_colour': custom_colour,
-                           'rf_image': custom_image,
-                           'text_colour': text_colour,
-                           'background_colour': background_colour})
+            time_shown = None
+            custom_colour = None
+            custom_image = None
 
-    elif experiment.question_type == 'RATING':
+        if experiment.question_type == 'pairwise-comparison':
+            choice_set = Pairwise.objects.filter(question=question)
 
-        # Check user has completed all previous questions for this experiment, attempt to fetch answer for each
-        # previous question
-        previous_questions_list = range(1, question_num)
-        for prev_question_num in previous_questions_list:
+            # Check user has completed all previous questions for this experiment, attempt to fetch answer for each
+            # previous question
+            previous_questions_list = range(1, question_num)
+            for prev_question_num in previous_questions_list:
+                try:
+                    prev_question = get_object_or_404(ExperimentQuestion, experiment=experiment,
+                                                      question_num=prev_question_num)
+                    prev_choice_set = Pairwise.objects.filter(question=prev_question)
+                    get_object_or_404(PairwiseChoice, experimentRegister=experiment_register, pairwise__in=prev_choice_set)
+                except Http404:
+                    return HttpResponseRedirect(
+                        reverse('experimentApp:experimentQuestion', args=(experiment_slug, prev_question_num)))
+
             try:
-                prev_question = get_object_or_404(ExperimentQuestion, experiment=experiment,
-                                                  question_num=prev_question_num)
-                prev_choice_set = Rating.objects.filter(question=prev_question)
-                if not RatingChoice.objects.filter(experimentRegister=experiment_register,
-                                                   rating__in=prev_choice_set).exists():
-                    raise Http404
-
+                groundTruth = get_object_or_404(PairwiseGroundTruth, question=question)
             except Http404:
-                return HttpResponseRedirect(
-                    reverse('experimentApp:experimentQuestion', args=(experiment_slug, prev_question_num)))
-
-        rating_set = Rating.objects.filter(question=question)
-        num_radio_choices = rating_set[0].range_upper_bound - rating_set[
-            0].range_lower_bound + 1  # Plus one as exclusive
-
-        try:
-            groundTruth = get_object_or_404(RatingGroundTruth, question=question)
-        except Http404:
-
-            # Since INPUT_FIELD and SLIDER are organised in rows, we preprocess the data separately
-            if rating_set[0].select_choice == "INPUT_FIELD" or rating_set[0].select_choice == "SLIDER":
 
                 # Since we limit 4 choices per row on the website, we organise the data to be manipulated easier
-                rating_list = []
+                choice_list = []
                 row = []
-                for index, choice in enumerate(rating_set):
+                for index, choice in enumerate(choice_set):
                     if index % 4 == 0 and index != 0:
-                        rating_list.append(row)
+                        choice_list.append(row)
                         row = []
                     row.append(choice)
 
                 # Add on remaining row, even if not "full" to 4 choices, if not empty
                 if row:
-                    rating_list.append(row)
+                    choice_list.append(row)
+
+                print(choice_list)
 
                 return render(request, 'experimentApp/experimentQuestion.html',
-                              {'experiment_type': 'image', 'question_type': experiment.question_type, 'question': question,
-                               'rating_list': rating_list,
+                              {'experiment_type': experiment_type, 'question_type': experiment.question_type, 'question': question,
+                               'choice_list': choice_list,
                                'experiment_slug': experiment_slug, 'question_error_message': error_message,
-                               'select_choice': rating_set[0].select_choice,
-                               'range_lower_bound': rating_set[0].range_lower_bound,
-                               'range_upper_bound': rating_set[0].range_upper_bound,
-                               'num_radio_choices': num_radio_choices,
                                'time_shown': time_shown,
                                'rf_colour': custom_colour,
                                'rf_image': custom_image,
                                'text_colour': text_colour,
                                'background_colour': background_colour})
-
             else:
-                return render(request, 'experimentApp/experimentQuestion.html',
-                              {'experiment_type': 'image', 'question_type': experiment.question_type, 'question': question,
-                               'rating_list': rating_set,
-                               'experiment_slug': experiment_slug, 'question_error_message': error_message,
-                               'select_choice': rating_set[0].select_choice,
-                               'range_lower_bound': rating_set[0].range_lower_bound,
-                               'range_upper_bound': rating_set[0].range_upper_bound,
-                               'num_radio_choices': num_radio_choices,
-                               'time_shown': time_shown,
-                               'rf_colour': custom_colour,
-                               'rf_image': custom_image,
-                               'text_colour': text_colour,
-                               'background_colour': background_colour})
-
-        else:
-
-            # Since INPUT_FIELD and SLIDER are organised in rows, we preprocess the data seperately
-            if rating_set[0].select_choice == "INPUT_FIELD" or rating_set[0].select_choice == "SLIDER":
 
                 # Since we limit 4 choices per row on the website, we organise the data to be manipulated easier
-                rating_list = []
+                choice_list = []
                 row = []
-                for index, choice in enumerate(rating_set):
+                for index, choice in enumerate(choice_set):
                     if index % 4 == 0 and index != 0:
-                        rating_list.append(row)
+                        choice_list.append(row)
                         row = []
                     row.append(choice)
 
                 # Add on remaining row, even if not "full" to 4 choices, if not empty
                 if row:
-                    rating_list.append(row)
+                    choice_list.append(row)
 
                 return render(request, 'experimentApp/experimentQuestion.html',
-                              {'experiment_type': 'image', 'question_type': experiment.question_type, 'question': question,
-                               'rating_list': rating_list,
+                              {'experiment_type': experiment_type, 'question_type': experiment.question_type, 'question': question,
+                               'choice_list': choice_list,
                                'experiment_slug': experiment_slug, 'groundTruth': groundTruth,
                                'question_error_message': error_message,
-                               'select_choice': rating_set[0].select_choice,
-                               'range_lower_bound': rating_set[0].range_lower_bound,
-                               'range_upper_bound': rating_set[0].range_upper_bound,
-                               'num_radio_choices': num_radio_choices,
                                'time_shown': time_shown,
                                'rf_colour': custom_colour,
                                'rf_image': custom_image,
                                'text_colour': text_colour,
                                'background_colour': background_colour})
 
+        elif experiment.question_type == 'RANKING':
+
+            # Check user has completed all previous questions for this experiment, attempt to fetch answer for each
+            # previous question
+            previous_questions_list = range(1, question_num)
+            for prev_question_num in previous_questions_list:
+                try:
+                    prev_question = get_object_or_404(ExperimentQuestion, experiment=experiment,
+                                                      question_num=prev_question_num)
+                    prev_choice_set = Ranking.objects.filter(question=prev_question)
+                    if not RankingChoice.objects.filter(experimentRegister=experiment_register,
+                                                        ranking__in=prev_choice_set).exists():
+                        raise Http404
+
+                except Http404:
+                    return HttpResponseRedirect(
+                        reverse('experimentApp:experimentQuestion', args=(experiment_slug, prev_question_num)))
+
+            ranking_set = Ranking.objects.filter(question=question)
+            ranking_set = list(ranking_set)
+            random.shuffle(ranking_set)
+
+            try:
+                groundTruth = get_object_or_404(RankingGroundTruth, question=question)
+            except Http404:
+                return render(request, 'experimentApp/experimentQuestion.html',
+                              {'experiment_type': experiment_type, 'question_type': experiment.question_type, 'question': question,
+                               'ranking_set': ranking_set, 'experiment_slug': experiment_slug,
+                               'question_error_message': error_message,
+                               'time_shown': time_shown,
+                               'rf_colour': custom_colour,
+                               'rf_image': custom_image,
+                               'text_colour': text_colour,
+                               'background_colour': background_colour})
             else:
                 return render(request, 'experimentApp/experimentQuestion.html',
-                              {'experiment_type': 'image', 'question_type': experiment.question_type, 'question': question,
-                               'rating_list': rating_set,
-                               'experiment_slug': experiment_slug, 'groundTruth': groundTruth,
+                              {'experiment_type': experiment_type, 'question_type': experiment.question_type, 'question': question,
+                               'ranking_set': ranking_set, 'experiment_slug': experiment_slug, 'groundTruth': groundTruth,
                                'question_error_message': error_message,
-                               'select_choice': rating_set[0].select_choice,
-                               'range_lower_bound': rating_set[0].range_lower_bound,
-                               'range_upper_bound': rating_set[0].range_upper_bound,
-                               'num_radio_choices': num_radio_choices,
                                'time_shown': time_shown,
                                'rf_colour': custom_colour,
                                'rf_image': custom_image,
                                'text_colour': text_colour,
                                'background_colour': background_colour})
+
+        elif experiment.question_type == 'RATING':
+
+            # Check user has completed all previous questions for this experiment, attempt to fetch answer for each
+            # previous question
+            previous_questions_list = range(1, question_num)
+            for prev_question_num in previous_questions_list:
+                try:
+                    prev_question = get_object_or_404(ExperimentQuestion, experiment=experiment,
+                                                      question_num=prev_question_num)
+                    prev_choice_set = Rating.objects.filter(question=prev_question)
+                    if not RatingChoice.objects.filter(experimentRegister=experiment_register,
+                                                       rating__in=prev_choice_set).exists():
+                        raise Http404
+
+                except Http404:
+                    return HttpResponseRedirect(
+                        reverse('experimentApp:experimentQuestion', args=(experiment_slug, prev_question_num)))
+
+            rating_set = Rating.objects.filter(question=question)
+            num_radio_choices = rating_set[0].range_upper_bound - rating_set[
+                0].range_lower_bound + 1  # Plus one as exclusive
+
+            try:
+                groundTruth = get_object_or_404(RatingGroundTruth, question=question)
+            except Http404:
+
+                # Since INPUT_FIELD and SLIDER are organised in rows, we preprocess the data separately
+                if rating_set[0].select_choice == "INPUT_FIELD" or rating_set[0].select_choice == "SLIDER":
+
+                    # Since we limit 4 choices per row on the website, we organise the data to be manipulated easier
+                    rating_list = []
+                    row = []
+                    for index, choice in enumerate(rating_set):
+                        if index % 4 == 0 and index != 0:
+                            rating_list.append(row)
+                            row = []
+                        row.append(choice)
+
+                    # Add on remaining row, even if not "full" to 4 choices, if not empty
+                    if row:
+                        rating_list.append(row)
+
+                    return render(request, 'experimentApp/experimentQuestion.html',
+                                  {'experiment_type': experiment_type, 'question_type': experiment.question_type, 'question': question,
+                                   'rating_list': rating_list,
+                                   'experiment_slug': experiment_slug, 'question_error_message': error_message,
+                                   'select_choice': rating_set[0].select_choice,
+                                   'range_lower_bound': rating_set[0].range_lower_bound,
+                                   'range_upper_bound': rating_set[0].range_upper_bound,
+                                   'num_radio_choices': num_radio_choices,
+                                   'time_shown': time_shown,
+                                   'rf_colour': custom_colour,
+                                   'rf_image': custom_image,
+                                   'text_colour': text_colour,
+                                   'background_colour': background_colour})
+
+                else:
+                    return render(request, 'experimentApp/experimentQuestion.html',
+                                  {'experiment_type': experiment_type, 'question_type': experiment.question_type, 'question': question,
+                                   'rating_list': rating_set,
+                                   'experiment_slug': experiment_slug, 'question_error_message': error_message,
+                                   'select_choice': rating_set[0].select_choice,
+                                   'range_lower_bound': rating_set[0].range_lower_bound,
+                                   'range_upper_bound': rating_set[0].range_upper_bound,
+                                   'num_radio_choices': num_radio_choices,
+                                   'time_shown': time_shown,
+                                   'rf_colour': custom_colour,
+                                   'rf_image': custom_image,
+                                   'text_colour': text_colour,
+                                   'background_colour': background_colour})
+
+            else:
+
+                # Since INPUT_FIELD and SLIDER are organised in rows, we preprocess the data seperately
+                if rating_set[0].select_choice == "INPUT_FIELD" or rating_set[0].select_choice == "SLIDER":
+
+                    # Since we limit 4 choices per row on the website, we organise the data to be manipulated easier
+                    rating_list = []
+                    row = []
+                    for index, choice in enumerate(rating_set):
+                        if index % 4 == 0 and index != 0:
+                            rating_list.append(row)
+                            row = []
+                        row.append(choice)
+
+                    # Add on remaining row, even if not "full" to 4 choices, if not empty
+                    if row:
+                        rating_list.append(row)
+
+                    return render(request, 'experimentApp/experimentQuestion.html',
+                                  {'experiment_type': experiment_type, 'question_type': experiment.question_type, 'question': question,
+                                   'rating_list': rating_list,
+                                   'experiment_slug': experiment_slug, 'groundTruth': groundTruth,
+                                   'question_error_message': error_message,
+                                   'select_choice': rating_set[0].select_choice,
+                                   'range_lower_bound': rating_set[0].range_lower_bound,
+                                   'range_upper_bound': rating_set[0].range_upper_bound,
+                                   'num_radio_choices': num_radio_choices,
+                                   'time_shown': time_shown,
+                                   'rf_colour': custom_colour,
+                                   'rf_image': custom_image,
+                                   'text_colour': text_colour,
+                                   'background_colour': background_colour})
+
+                else:
+                    return render(request, 'experimentApp/experimentQuestion.html',
+                                  {'experiment_type': experiment_type, 'question_type': experiment.question_type, 'question': question,
+                                   'rating_list': rating_set,
+                                   'experiment_slug': experiment_slug, 'groundTruth': groundTruth,
+                                   'question_error_message': error_message,
+                                   'select_choice': rating_set[0].select_choice,
+                                   'range_lower_bound': rating_set[0].range_lower_bound,
+                                   'range_upper_bound': rating_set[0].range_upper_bound,
+                                   'num_radio_choices': num_radio_choices,
+                                   'time_shown': time_shown,
+                                   'rf_colour': custom_colour,
+                                   'rf_image': custom_image,
+                                   'text_colour': text_colour,
+                                   'background_colour': background_colour})
 
 
 # Function to process request for video comparison question and serve correct question data in format for front end
@@ -825,10 +752,7 @@ def experimentQuestionVideo(request, experiment_slug, question_num, experiment, 
     video_set = VideoPairwise.objects.filter(question=question)
     video_urls = []
     for video in video_set:
-        print(video.choice_video)
         video_urls.append(video.choice_video.url)
-
-    print(video_urls)
 
     return render(request, 'experimentApp/experimentQuestion.html',
                   {'experiment_type': 'video', 'question_type': experiment.question_type, 'question': question,

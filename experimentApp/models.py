@@ -61,7 +61,7 @@ class Pairwise(models.Model):
 
     choice_algorithm = models.CharField(max_length=200)  # Name of algorithm applied to image
     choice_text = models.CharField(max_length=200)
-    choice_image = models.ImageField(upload_to='choiceImages/', default='default/default.jpg')
+    choice_image = models.FileField(upload_to='choiceImages/')
 
     def __str__(self):
         return self.choice_text
@@ -71,7 +71,7 @@ class PairwiseGroundTruth(models.Model):
     question = models.ForeignKey(ExperimentQuestion, on_delete=models.CASCADE)
 
     choice_text = models.CharField(max_length=200)
-    choice_image = models.ImageField(upload_to='choiceImages/', default='default/default.jpg')
+    choice_image = models.FileField(upload_to='choiceImages/')
 
 
 class PairwiseChoice(models.Model):
@@ -93,7 +93,7 @@ class Ranking(models.Model):
 
     choice_algorithm = models.CharField(max_length=200)  # Name of algorithm applied to image
     choice_text = models.CharField(max_length=200)
-    choice_image = models.ImageField(upload_to='choiceImages/', default='default/default.jpg')
+    choice_image = models.FileField(upload_to='choiceImages/')
 
     def __str__(self):
         return self.choice_text
@@ -103,7 +103,7 @@ class RankingGroundTruth(models.Model):
     question = models.ForeignKey(ExperimentQuestion, on_delete=models.CASCADE)
 
     choice_text = models.CharField(max_length=200)
-    choice_image = models.ImageField(upload_to='choiceImages/', default='default/default.jpg')
+    choice_image = models.FileField(upload_to='choiceImages/')
 
 
 class RankingChoice(models.Model):
@@ -125,7 +125,7 @@ class Rating(models.Model):
 
     choice_algorithm = models.CharField(max_length=200)  # Name of algorithm applied to image
     choice_text = models.CharField(max_length=200)
-    choice_image = models.ImageField(upload_to='choiceImages/', default='default/default.jpg')
+    choice_image = models.FileField(upload_to='choiceImages/')
 
     select_choice = models.CharField(max_length=50, choices=RATING_SELECT_CHOICES)
 
@@ -140,7 +140,7 @@ class RatingGroundTruth(models.Model):
     question = models.ForeignKey(ExperimentQuestion, on_delete=models.CASCADE)
 
     choice_text = models.CharField(max_length=200)
-    choice_image = models.ImageField(upload_to='choiceImages/', default='default/default.jpg')
+    choice_image = models.FileField(upload_to='choiceImages/')
 
 
 class RatingChoice(models.Model):

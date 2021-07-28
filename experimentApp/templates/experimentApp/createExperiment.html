@@ -25,7 +25,7 @@
         <!-- Page Content -->
         <div class="container">
 
-            <h1 class="mt-4">Create Image Experiment</h1>
+            <h1 class="mt-4">Create Experiment</h1>
 
             {% if error_message %}
                 <div class="mb-4">
@@ -48,10 +48,32 @@
                 {% endfor %}
 
 
-                <!-- Images -->
-                <h4 class="mt-5">Upload Images</h4>
-                Click the button below to upload the images which will be used in the experiment. Filenames must be in the form
-                [Prefix]_[Suffix] where [Prefix] is the name of the image and [Suffix] is the name of the algorithm applied.
+                <!-- Type of experiment -->
+                <h4 class="mt-5">Type of Experiment</h4>
+                <p>Experiments can either have participants compare images or compare videos. They will both be presented in
+                similar ways during the experiment, but videos will obviously have the additional options to play/pause
+                them. All types of questions are available for each one.</p>
+                <table>
+                        <tr>
+                            <td style="padding: 0px 0px 0px 20px;">
+                                <input id="imageExperiment" type="radio" name="experimentType" value="image" checked>
+                                <label for="imageExperiment"><h4 class="mt-2">Images</h4></label>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 0px 0px 0px 20px;">
+                                <input id="videoExperiment" type="radio" name="experimentType" value="video">
+                                <label for="videoExperiment"><h4 class="mt-2">Videos</h4></label>
+                            </td>
+                        </tr>
+                </table>
+
+
+
+                <!-- File Upload -->
+                <h4 class="mt-5">Upload Files</h4>
+                Click the button below to upload the files which will be used in the experiment. Filenames must be in the form
+                [Prefix]_[Suffix] where [Prefix] is the name of the file and [Suffix] is the name of the algorithm applied.
                 The file structure must be in one of two forms to be accepted:
                 <div class="mt-1">
                     <ul>
@@ -59,7 +81,7 @@
                             <b>By filenames</b> - upload files
                         </li>
                         <li>
-                            <b>By directories</b> - upload each directory individually, each of which contains an image set
+                            <b>By directories</b> - upload each directory individually, each of which contains a file set
                         </li>
                     </ul>
                 </div>
@@ -170,13 +192,13 @@
 
 
                 <!-- Questions -->
-                <h2 class="mt-5">Type of Questions</h2>
+                <h2 class="mt-5">Questions</h2>
                 <p>Choose one of the below style of questions, and modify the global and question-specific options to your choosing.</p>
 
                 <ul class="mb-3" style="list-style-type:none;">
                     <li>
                         <input type="checkbox" id="groundTruthOption" name="groundTruthOption">
-                        <label for="groundTruthOption">Compare images from the same algorithm to the ground truth</label>
+                        <label for="groundTruthOption">Compare files from the same algorithm to the ground truth</label>
                     </li>
                     <li>
                         <input type="checkbox" id="randomiseQuestionOption" name="randomiseQuestionOption">
@@ -198,7 +220,7 @@
                                 <ul style="list-style-type:none;">
                                     <li>
                                         <input type="radio" id="pcSameAlgor" name="pcAlgorChoice" value="pcSameAlgor" checked>
-                                        <label for="pcSameAlgor">Compare all images from the same image</label>
+                                        <label for="pcSameAlgor">Compare all files from the same file</label>
                                     </li>
                                     <li>
                                         <input type="radio" id="pcNC3" name="pcAlgorChoice" value="pcNC3">
