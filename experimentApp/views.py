@@ -7,7 +7,7 @@ from django.urls import reverse
 from utils import sortInputFiles, generateUniqueSlug, sortInputDirs, saveExperimentInstance
 from .models import Experiment, ExperimentQuestion, Pairwise, PairwiseGroundTruth, Ranking, RankingChoice, Rating, \
     RatingChoice, ExperimentRegister, PairwiseChoice, RankingGroundTruth, RatingGroundTruth, ExperimentRefresher, \
-    ExperimentSlug, ExperimentCustomColours, RankingOptions, VideoPairwise
+    ExperimentSlug, ExperimentCustomColours, RankingOptions, VideoPairwise, ExperimentOverlay
 from .forms import ExperimentForm, OrderingForm, EmailForm
 
 from PIL import Image
@@ -178,6 +178,10 @@ def createExperimentPC(request, sorted_files):
 
         # Save experiment details+options
         experimentInstance, experimentSlug = saveExperimentInstance(request, experimentForm, request.POST.get("experimentType"), 'pairwise-comparison')
+
+        # Save overlay option if chosen
+        if request.POST.get("pcOverlay"):
+            ExperimentOverlay.objects.create(experiment=experimentInstance)
 
         # If user has chosen to compare same image from different algorithms
         algor_choice = request.POST['pcAlgorChoice']
@@ -525,12 +529,24 @@ def experimentQuestion(request, experiment_slug, question_num):
                     return HttpResponseRedirect(
                         reverse('experimentApp:experimentQuestion', args=(experiment_slug, prev_question_num)))
 
+            # Check if overlay was enabled
+            overlay_enabled = True
+            file_urls = []
+            choice_list = []
             try:
-                groundTruth = get_object_or_404(PairwiseGroundTruth, question=question)
-            except Http404:
+                get_object_or_404(ExperimentOverlay, experiment=experiment)
 
-                # Since we limit 4 choices per row on the website, we organise the data to be manipulated easier
-                choice_list = []
+                # Get urls of choices in list
+                for choice in choice_set:
+                    file_urls.append(choice.choice_image.url)
+
+                choice_list = choice_set
+
+            except Http404:
+                overlay_enabled = False
+
+                # Since we limit 4 choices per row on the website, we organise the data to be manipulated easier since
+                # this will not be displayed in overlay format
                 row = []
                 for index, choice in enumerate(choice_set):
                     if index % 4 == 0 and index != 0:
@@ -542,7 +558,9 @@ def experimentQuestion(request, experiment_slug, question_num):
                 if row:
                     choice_list.append(row)
 
-                print(choice_list)
+            try:
+                groundTruth = get_object_or_404(PairwiseGroundTruth, question=question)
+            except Http404:
 
                 return render(request, 'experimentApp/experimentQuestion.html',
                               {'experiment_type': experiment_type, 'question_type': experiment.question_type, 'question': question,
@@ -552,21 +570,10 @@ def experimentQuestion(request, experiment_slug, question_num):
                                'rf_colour': custom_colour,
                                'rf_image': custom_image,
                                'text_colour': text_colour,
-                               'background_colour': background_colour})
+                               'background_colour': background_colour,
+                               'overlay_enabled': overlay_enabled,
+                               'file_urls': file_urls})
             else:
-
-                # Since we limit 4 choices per row on the website, we organise the data to be manipulated easier
-                choice_list = []
-                row = []
-                for index, choice in enumerate(choice_set):
-                    if index % 4 == 0 and index != 0:
-                        choice_list.append(row)
-                        row = []
-                    row.append(choice)
-
-                # Add on remaining row, even if not "full" to 4 choices, if not empty
-                if row:
-                    choice_list.append(row)
 
                 return render(request, 'experimentApp/experimentQuestion.html',
                               {'experiment_type': experiment_type, 'question_type': experiment.question_type, 'question': question,
@@ -577,7 +584,9 @@ def experimentQuestion(request, experiment_slug, question_num):
                                'rf_colour': custom_colour,
                                'rf_image': custom_image,
                                'text_colour': text_colour,
-                               'background_colour': background_colour})
+                               'background_colour': background_colour,
+                               'overlay_enabled': overlay_enabled,
+                               'file_urls': file_urls})
 
         elif experiment.question_type == 'RANKING':
 
@@ -743,22 +752,6 @@ def experimentQuestion(request, experiment_slug, question_num):
                                    'rf_image': custom_image,
                                    'text_colour': text_colour,
                                    'background_colour': background_colour})
-
-
-# Function to process request for video comparison question and serve correct question data in format for front end
-# to parse
-def experimentQuestionVideo(request, experiment_slug, question_num, experiment, question, error_message, experiment_register):
-
-    video_set = VideoPairwise.objects.filter(question=question)
-    video_urls = []
-    for video in video_set:
-        video_urls.append(video.choice_video.url)
-
-    return render(request, 'experimentApp/experimentQuestion.html',
-                  {'experiment_type': 'video', 'question_type': experiment.question_type, 'question': question,
-                   'video_urls': video_urls,
-                   'experiment_slug': experiment_slug,
-                   'question_error_message': error_message})
 
 
 # View to control storing user's choice for experiment question in database

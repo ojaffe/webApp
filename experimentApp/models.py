@@ -45,6 +45,11 @@ class ExperimentRefresher(models.Model):
     custom_image = models.ImageField(upload_to='refresherImages/')
 
 
+# If model exists for experiment, then experiment uses overlay option
+class ExperimentOverlay(models.Model):
+    experiment = models.ForeignKey(Experiment, on_delete=models.CASCADE)
+
+
 # Each question is represented by this model, choices in such question have foreign keys to this
 class ExperimentQuestion(models.Model):
     experiment = models.ForeignKey(Experiment, on_delete=models.CASCADE)

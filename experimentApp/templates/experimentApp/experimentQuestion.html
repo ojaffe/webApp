@@ -80,75 +80,146 @@
                     {% endif %}
                 {% endif %}
 
-                {% if experiment_type == 'image' %}
-                    <p class="colourText">Select one image from the following which looks best to you. Spend time examining each one, you can enlarge an
-                    image to its original resolution by clicking on it.</p>
-                {% else %}
-                    <p class="colourText">Select one video from the following which looks best to you. Spend time examining each one - you can play, pause,
-                    replay and enlarge each video.</p>
-                {% endif %}
+                {% if overlay_enabled == True %} <!-- If overlay option was chosen -->
+                    {% if experiment_type == 'image' %}
+                        <p class="colourText">Select one image from the following which looks best to you. Spend time examining each one, you can enlarge an
+                        image to its original resolution by clicking on it. Iterate through the images by clicking the buttons, or choosing
+                        the options on the side.</p>
+                    {% else %}
+                        <p class="colourText">Select one video from the following which looks best to you. Spend time examining each one - you can play, pause,
+                        replay and enlarge each video. Iterate through the videos by clicking the buttons, or choosing
+                        the options on the side.</p>
+                    {% endif %}
 
+                    <form action="{% url 'experimentApp:vote' experiment_slug question.question_num %}" method="post">
+                        {% csrf_token %}
 
-                <form action="{% url 'experimentApp:vote' experiment_slug question.question_num %}" method="post">
-                    {% csrf_token %}
-
-                    <table>
-
-                        {% for row in choice_list %}
+                        <table style="margin-left: auto; margin-right: auto;">
                             <tr>
-                                {% for choice in row %}
-                                    <td style="padding: 5px 5px 5px 5px;">
-                                        {% if experiment_type == 'image' %}
-                                            <img src="{{ choice.choice_image.url }}" onclick="focusImage(this);" class="pc_files"/>
-                                        {% else %}
-                                            <video class="pc_files" controls>
-                                                <source src="{{ choice.choice_image.url }}" type="video/mp4">
-                                            </video>
-                                        {% endif %}
-
-                                        <p style="text-align: center;">
-                                            <input type="radio" name="choice" id="choice{{ forloop.counter }}{{forloop.parentloop.counter}}" value="{{ choice.id }}">
-                                            <label class="colourText" for="choice{{ forloop.counter }}{{forloop.parentloop.counter}}">{{ choice.choice_text }}</label>
-                                        </p>
-                                    </td>
-                            {% endfor %}
+                                <td>
+                                    {% if experiment_type == 'image' %}
+                                        <img id="media_container" src onclick="focusImage(this);" choice_text="{{ rating.choice_text }}"/>
+                                    {% else %}
+                                        <video controls>
+                                            <source src id="media_container" type="video/mp4">
+                                        </video>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <ul>
+                                        {% for choice in choice_list %}
+                                            <p>
+                                                <input type="radio" class="radioInputs" name="choice" id="{{ forloop.counter0 }}" value="{{ choice.id }}" onclick="changeMedia(this);">
+                                                <label class="colourText" for="{{ forloop.counter0 }}">{{ choice.choice_text }}</label>
+                                            </p>
+                                        {% endfor %}
+                                    </ul>
+                                </td>
                             </tr>
-                        {% endfor %}
+                            <tr>
+                                <td style="padding: 20px 0px 0px 0px; text-align: center;">
+                                    <button type="button" onclick="nextMediaSrc();">Next Media</button>
+                                </td>
+                                <td>
 
-                    </table>
-                    <input type="submit" class="btn btn-outline-primary btn-lg" value="Next Question">
-                </form>
+                                </td>
+                            </tr>
+                        </table>
 
-                <script>
-                    // Resizes images to have max 4 on each horizontal row, only decreasing their resolution, will
-                    // not increase their resolution
-                    window.addEventListener('resize', resizeImages);
-                    resizeImages();
+                        <input type="submit" class="btn btn-outline-primary btn-lg" value="Next Question">
+                    </form>
 
-                    function resizeImages() {
-                        var pc_files = document.getElementsByClassName("pc_files");
-                        var num_images_in_row = pc_files.length;
+                    <script>
+                        files_list = {{ file_urls|safe }};
+                        media_container = document.getElementById("media_container");
+                        src_index = -1;
 
-                        if(num_images_in_row > 4) {
-                            num_images_in_row = 4;
+                        function nextMediaSrc() {
+                            src_index = (src_index + 1) % files_list.length;
+                            media_container.src = files_list[src_index];
+                            document.getElementsByClassName("radioInputs")[src_index].checked = true;
                         }
 
-                        const screen_width = $("#div_container").css('max-width');
-                        let image_width = ((parseInt(screen_width) - 30) / num_images_in_row) - 10;
+                        // Display first media source and enable appropriate radio
+                        nextMediaSrc();
+                        document.getElementsByClassName("radioInputs")[0].checked = true;
 
-                        if(image_width < pc_files[0].width) {
-                            for(var i = 0; i < pc_files.length; i++) {
-                                pc_files[i].width = image_width;
+                        function changeMedia(e) {
+                            src_index = e.id;
+                            media_container.src = files_list[src_index % files_list.length];
+                        }
+                    </script>
+
+                {% else %}
+                    {% if experiment_type == 'image' %}
+                        <p class="colourText">Select one image from the following which looks best to you. Spend time examining each one, you can enlarge an
+                        image to its original resolution by clicking on it.</p>
+                    {% else %}
+                        <p class="colourText">Select one video from the following which looks best to you. Spend time examining each one - you can play, pause,
+                        replay and enlarge each video.</p>
+                    {% endif %}
+
+
+                    <form action="{% url 'experimentApp:vote' experiment_slug question.question_num %}" method="post">
+                        {% csrf_token %}
+
+                        <table>
+
+                            {% for row in choice_list %}
+                                <tr>
+                                    {% for choice in row %}
+                                        <td style="padding: 5px 5px 5px 5px;">
+                                            {% if experiment_type == 'image' %}
+                                                <img src="{{ choice.choice_image.url }}" onclick="focusImage(this);" class="pc_files"/>
+                                            {% else %}
+                                                <video class="pc_files" controls>
+                                                    <source src="{{ choice.choice_image.url }}" type="video/mp4">
+                                                </video>
+                                            {% endif %}
+
+                                            <p style="text-align: center;">
+                                                <input type="radio" name="choice" id="choice{{ forloop.counter }}{{forloop.parentloop.counter}}" value="{{ choice.id }}">
+                                                <label class="colourText" for="choice{{ forloop.counter }}{{forloop.parentloop.counter}}">{{ choice.choice_text }}</label>
+                                            </p>
+                                        </td>
+                                {% endfor %}
+                                </tr>
+                            {% endfor %}
+
+                        </table>
+                        <input type="submit" class="btn btn-outline-primary btn-lg" value="Next Question">
+                    </form>
+
+                    <script>
+                        // Resizes images to have max 4 on each horizontal row, only decreasing their resolution, will
+                        // not increase their resolution
+                        window.addEventListener('resize', resizeImages);
+                        resizeImages();
+
+                        function resizeImages() {
+                            var pc_files = document.getElementsByClassName("pc_files");
+                            var num_images_in_row = pc_files.length;
+
+                            if(num_images_in_row > 4) {
+                                num_images_in_row = 4;
                             }
 
-                            const gt_file = document.getElementsByClassName("gt_file");
-                            if(gt_file[0] != undefined) {
-                                gt_file[0].width = image_width;
+                            const screen_width = $("#div_container").css('max-width');
+                            let image_width = ((parseInt(screen_width) - 30) / num_images_in_row) - 10;
+
+                            if(image_width < pc_files[0].width) {
+                                for(var i = 0; i < pc_files.length; i++) {
+                                    pc_files[i].width = image_width;
+                                }
+
+                                const gt_file = document.getElementsByClassName("gt_file");
+                                if(gt_file[0] != undefined) {
+                                    gt_file[0].width = image_width;
+                                }
                             }
                         }
-                    }
-                </script>
-
+                    </script>
+                {% endif %}
             {% endif %}
 
 
@@ -526,6 +597,85 @@
 
                 {% endif %}
 
+            {% endif %}
+
+            {% if question_type == 'overlay' %}
+
+                {% if groundTruth %}
+                    {% if experiment_type == 'image' %}
+                        <p class="colourText">Below is the original image.</p>
+                        <br>
+                        <img src="{{ groundTruth.choice_image.url }}" alt="img" class="gt_file">
+                        <br>
+                    {% else %}
+                        <p class="colourText">Below is the original video.</p>
+                        <video class="gt_file" controls>
+                            <source src="{{ groundTruth.choice_image.url }}" type="video/mp4">
+                        </video>
+                        <br>
+                    {% endif %}
+                {% endif %}
+
+                <p class="colourText">Select the image that you believe looks best.</p>
+
+                <form action="{% url 'experimentApp:vote' experiment_slug question.question_num %}" method="post">
+                    {% csrf_token %}
+
+                    <table style="margin-left: auto; margin-right: auto;">
+                        <tr>
+                            <td>
+                                {% if experiment_type == 'image' %}
+                                    <img id="media_container" src onclick="focusImage(this);" choice_text="{{ rating.choice_text }}"/>
+                                {% else %}
+                                    <video controls>
+                                        <source id="media_container" src type="video/mp4">
+                                    </video>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <ul>
+                                    {% for choice in choice_set %}
+                                        <p>
+                                            <input type="radio" class="radioInputs" name="choice" id="{{ forloop.counter0 }}" value="{{ choice.id }}" onclick="changeMedia(this);">
+                                            <label class="colourText" for="{{ forloop.counter0 }}">{{ choice.choice_text }}</label>
+                                        </p>
+                                    {% endfor %}
+                                </ul>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <button type="button" onclick="nextMediaSrc();">Next Media</button>
+                            </td>
+                            <td>
+
+                            </td>
+                        </tr>
+                    </table>
+
+                    <input type="submit" class="btn btn-outline-primary btn-lg" value="Next Question">
+                </form>
+
+                <script>
+                    files_list = {{ file_urls|safe }};
+                    media_container = document.getElementById("media_container");
+                    src_index = -1;
+
+                    function nextMediaSrc() {
+                        src_index = (src_index + 1) % files_list.length;
+                        media_container.src = files_list[src_index];
+                        document.getElementsByClassName("radioInputs")[src_index].checked = true;
+                    }
+
+                    // Display first media source and enable appropriate radio
+                    nextMediaSrc();
+                    document.getElementsByClassName("radioInputs")[0].checked = true;
+
+                    function changeMedia(e) {
+                        src_index = e.id;
+                        media_container.src = files_list[src_index % files_list.length];
+                    }
+                </script>
             {% endif %}
 
         </div>
