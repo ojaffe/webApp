@@ -58,74 +58,73 @@
             The title of an experiment will also be used by admins to identify an experiment from others when viewing,
                 all experiments, so choose their name carefully.</p>
 
-            <p>Images are required for every experiment. When uploading images, they must be named <b>"[PREFIX]_[SUFFIX]"</b>, where the prefix is
-            the name of the original image and the suffix is the algorithm applied. Images can be organised in one of two ways:</p>
+            <p>Images or videos are required for every experiment. When uploading files, they must be named <i>"[PREFIX]_[SUFFIX]"</i>, where the prefix is
+            the name of the original file and the suffix is the algorithm applied. Files can be organised in one of two ways:</p>
 
             <ul>
                 <li>
-                    <b>By files</b> - click and select all images you want to upload
+                    <b>By files</b> - click and select all files you want to upload
                 </li>
                 <li>
                     <b>By directories</b> - upload each directory containing files separately
                 </li>
             </ul>
 
-            <p>Images must have consistent naming, as described above, as well as consistent resolutions for each
-            set of files. Either of these options can be modified in the source code by removing the appropirate
+            <p>Files must have consistent naming, as described above, as well as consistent resolutions for sets of images.
+            Either of these options can be modified in the source code by removing the appropriate
             function calls to parse the data.</p>
 
-            <p>Currently, three different types of questions are supported for a given set of images:</p>
+            <p>Currently, three different types of questions are supported for a given set of files:</p>
 
             <ul>
                 <li>
-                    <b>Pairwise Comparison</b> - Select an image
+                    <b>Pairwise Comparison</b> - Select a file
                 </li>
                 <li>
-                    <b>Ranking</b> - Order the images
+                    <b>Ranking</b> - Order the files
                 </li>
                 <li>
-                    <b>Rating</b> - Give a rating (number, choice out of five e.g.) to each image
+                    <b>Rating</b> - Give a rating (number, choice out of five e.g.) to each file
                 </li>
             </ul>
 
-            <p>Using one of the above you can have participants judge images by some metric, for example simply having
+            <p>Using one of the above you can have participants judge files by some metric, for example simply having
             the participants judge them by how good they look. Admins have the option to customise these questions,
                 below we will explain each questions options.</p>
 
-            <p>Selecting ground truth will present the original image to the participant, and will remove it from being
-            an option to answer.</p>
-
-            <p><b>Pairwise Comparison</b></p>
+            <p>Some options exist that apply to all types of questions:</p>
             <ul>
                 <li>
-                    Ground Truth (see above)
+                    Ground Truth - Presents the original file to the participant, and will remove it from being
+            an option to answer.
                 </li>
                 <li>
-                    Compare all images from the same image - All images with the same original image (different algorithms
-                    applied to some image) will be compared in each question
-                </li>
-                <li>
-                    Perform NC2 comparisons - There will be a question for each combination in the set of images with
-                    the same original image, so every image in such set will be compared to every other
-                </li>
-                <li>
-                    Randomise the ordering of the comparisons - The ordering of questions, and the NC2 comparisons if
-                    chosen, will be randomised
+                    Randomise - Shuffles order of questions
                 </li>
             </ul>
 
-            <p><b>Ranking</b></p>
+            <p><i>Pairwise Comparison</i></p>
             <ul>
                 <li>
-                    Ground Truth (see above)
+                    Compare all files from the same file - All files with the same original file (different algorithms
+                    applied to some file) will be compared in each question
+                </li>
+                <li>
+                    Overlay - instead of the files all being displayed side by side, they will only be displayed once
+                    at a time, with the option to select which file is shown
                 </li>
             </ul>
 
-            <p><b>Rating</b></p>
+            <p><i>Ranking</i></p>
             <ul>
                 <li>
-                    Ground Truth (see above)
+                    Randomise initial ordering - The set of ranked files will be in a random order every time the page
+                    is loaded
                 </li>
+            </ul>
+
+            <p><i>Rating</i></p>
+            <ul>
                 <li>
                     Select how the user should answer a question - The admin can choose how the participant will select
                     their rating, can select from input field where they type in the rating, radio chose where they select
@@ -219,22 +218,23 @@
                 be seen by clicking it.</p>
 
             <h4 class="mt-3" style="color: #424a8c">Pairwise Comparison</h4>
-            <p>Participants will be shown several images, and be asked to choose one. They can select an image by clicking
-                the radio choice, or its label, next to the image.</p>
+            <p>Participants will be shown several files, and be asked to choose one. They can select a file by clicking
+                the radio choice, or its label, next to the file.</p>
 
-            <p>If there are more than four images, they will be displayed in rows with four images per row. The images
+            <p>If the user chose the <i>overlay</i> option, the images will be displayed one at a time in the center, with
+                the option to switch between which one is displayed. If not chosen, if there are more than four files, they will be displayed in rows with four files per row. The files
                 may also be scaled depending on the display resolution, as we noted earlier.</p>
 
             <h4 class="mt-3" style="color: #424a8c">Ranking</h4>
-            <p>Participants will be shown several images in a vertical column, and will be asked to arrange these
+            <p>Participants will be shown several files in a vertical column, and will be asked to arrange these
             in some ordering of their preference. They can change the ordering by holding down the handle associated
-                with each image and dragging it up or down.</p>
+                with each file and dragging it up or down.</p>
 
-            <p>Note, for ranking participants must click on every image to enlarge them before they can proceed to
+            <p>Note, for ranking participants must click on every file to enlarge them before they can proceed to
                 the next question.</p>
 
             <h4 class="mt-3" style="color: #424a8c">Rating</h4>
-            <p>Participants are shown several images and are asked to rate each one. Depending on how the admin set
+            <p>Participants are shown several files and are asked to rate each one. Depending on how the admin set
             up the experiment, they will have to answer in a particular way:</p>
             <ul>
                 <li>
@@ -248,9 +248,9 @@
                 </li>
             </ul>
 
-            <p>If there are more than four images, they will be displayed in rows with four images per row. The images
+            <p>If there are more than four files, they will be displayed in rows with four files per row. The files
             may also be scaled depending on the display resolution, as we noted earlier. Participants can also
-                select an images rating when it is enlarged (not for radio though), for convenience. </p>
+                select a files rating when it is enlarged (not for radio though), for convenience. </p>
 
         </div>
 

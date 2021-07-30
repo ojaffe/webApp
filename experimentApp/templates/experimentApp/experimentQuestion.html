@@ -67,68 +67,159 @@
             <!-- Pairwise Comparison Question -->
             {% if question_type == 'pairwise-comparison' %}
                 {% if groundTruth %}
-                    <p class="colourText">Below is the original image.</p>
-                    <img src="{{ groundTruth.choice_image.url }}" alt="img" onclick="focusImage(this);" class="gt_image">
-                    <br>
+                    {% if experiment_type == 'image' %}
+                        <p class="colourText">Below is the original image.</p>
+                        <img src="{{ groundTruth.choice_image.url }}" alt="img" onclick="focusImage(this);" class="gt_file">
+                        <br>
+                    {% else %}
+                        <p class="colourText">Below is the original video.</p>
+                        <video class="gt_file" controls>
+                            <source src="{{ groundTruth.choice_image.url }}" type="video/mp4">
+                        </video>
+                        <br>
+                    {% endif %}
                 {% endif %}
 
-                <p class="colourText">Select one image from the following which looks best to you. Spend time examining each one, you can enlarge an
-                    image to its original resolution by clicking on it.</p>
+                {% if overlay_enabled == True %} <!-- If overlay option was chosen -->
+                    {% if experiment_type == 'image' %}
+                        <p class="colourText">Select one image from the following which looks best to you. Spend time examining each one, you can enlarge an
+                        image to its original resolution by clicking on it. Iterate through the images by clicking the buttons, or choosing
+                        the options on the side.</p>
+                    {% else %}
+                        <p class="colourText">Select one video from the following which looks best to you. Spend time examining each one - you can play, pause,
+                        replay and enlarge each video. Iterate through the videos by clicking the buttons, or choosing
+                        the options on the side.</p>
+                    {% endif %}
 
-                <form action="{% url 'experimentApp:vote' experiment_slug question.question_num %}" method="post">
-                    {% csrf_token %}
+                    <form action="{% url 'experimentApp:vote' experiment_slug question.question_num %}" method="post">
+                        {% csrf_token %}
 
-                    <table>
-
-                        {% for row in choice_list %}
+                        <table style="margin-left: auto; margin-right: auto;">
                             <tr>
-                                {% for choice in row %}
-                                    <td style="padding: 5px 5px 5px 5px;">
-                                        <img src="{{ choice.choice_image.url }}" onclick="focusImage(this);" class="pc_images"/>
-
-                                        <p style="text-align: center;">
-                                            <input type="radio" name="choice" id="choice{{ forloop.counter }}{{forloop.parentloop.counter}}" value="{{ choice.id }}">
-                                            <label class="colourText" for="choice{{ forloop.counter }}{{forloop.parentloop.counter}}">{{ choice.choice_text }}</label>
-                                        </p>
-                                    </td>
-                            {% endfor %}
+                                <td>
+                                    {% if experiment_type == 'image' %}
+                                        <img id="media_container" src onclick="focusImage(this);" choice_text="{{ rating.choice_text }}"/>
+                                    {% else %}
+                                        <video controls>
+                                            <source src id="media_container" type="video/mp4">
+                                        </video>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <ul>
+                                        {% for choice in choice_list %}
+                                            <p>
+                                                <input type="radio" class="radioInputs" name="choice" id="{{ forloop.counter0 }}" value="{{ choice.id }}" onclick="changeMedia(this);">
+                                                <label class="colourText" for="{{ forloop.counter0 }}">{{ choice.choice_text }}</label>
+                                            </p>
+                                        {% endfor %}
+                                    </ul>
+                                </td>
                             </tr>
-                        {% endfor %}
+                            <tr>
+                                <td style="padding: 20px 0px 0px 0px; text-align: center;">
+                                    <button type="button" onclick="nextMediaSrc();">Next Media</button>
+                                </td>
+                                <td>
 
-                    </table>
-                    <input type="submit" class="btn btn-outline-primary btn-lg" value="Next Question">
-                </form>
+                                </td>
+                            </tr>
+                        </table>
 
-                <script>
-                    // Resizes images to have max 4 on each horizontal row, only decreasing their resolution, will
-                    // not increase their resolution
-                    window.addEventListener('resize', resizeImages);
-                    resizeImages();
+                        <input type="submit" class="btn btn-outline-primary btn-lg" value="Next Question">
+                    </form>
 
-                    function resizeImages() {
-                        var pc_images = document.getElementsByClassName("pc_images");
-                        var num_images_in_row = pc_images.length;
+                    <script>
+                        files_list = {{ file_urls|safe }};
+                        media_container = document.getElementById("media_container");
+                        src_index = -1;
 
-                        if(num_images_in_row > 4) {
-                            num_images_in_row = 4;
+                        function nextMediaSrc() {
+                            src_index = (src_index + 1) % files_list.length;
+                            media_container.src = files_list[src_index];
+                            document.getElementsByClassName("radioInputs")[src_index].checked = true;
                         }
 
-                        const screen_width = $("#div_container").css('max-width');
-                        let image_width = ((parseInt(screen_width) - 30) / num_images_in_row) - 10;
+                        // Display first media source and enable appropriate radio
+                        nextMediaSrc();
+                        document.getElementsByClassName("radioInputs")[0].checked = true;
 
-                        if(image_width < pc_images[0].width) {
-                            for(var i = 0; i < pc_images.length; i++) {
-                                pc_images[i].width = image_width;
+                        function changeMedia(e) {
+                            src_index = e.id;
+                            media_container.src = files_list[src_index % files_list.length];
+                        }
+                    </script>
+
+                {% else %}
+                    {% if experiment_type == 'image' %}
+                        <p class="colourText">Select one image from the following which looks best to you. Spend time examining each one, you can enlarge an
+                        image to its original resolution by clicking on it.</p>
+                    {% else %}
+                        <p class="colourText">Select one video from the following which looks best to you. Spend time examining each one - you can play, pause,
+                        replay and enlarge each video.</p>
+                    {% endif %}
+
+
+                    <form action="{% url 'experimentApp:vote' experiment_slug question.question_num %}" method="post">
+                        {% csrf_token %}
+
+                        <table>
+
+                            {% for row in choice_list %}
+                                <tr>
+                                    {% for choice in row %}
+                                        <td style="padding: 5px 5px 5px 5px;">
+                                            {% if experiment_type == 'image' %}
+                                                <img src="{{ choice.choice_image.url }}" onclick="focusImage(this);" class="pc_files"/>
+                                            {% else %}
+                                                <video class="pc_files" controls>
+                                                    <source src="{{ choice.choice_image.url }}" type="video/mp4">
+                                                </video>
+                                            {% endif %}
+
+                                            <p style="text-align: center;">
+                                                <input type="radio" name="choice" id="choice{{ forloop.counter }}{{forloop.parentloop.counter}}" value="{{ choice.id }}">
+                                                <label class="colourText" for="choice{{ forloop.counter }}{{forloop.parentloop.counter}}">{{ choice.choice_text }}</label>
+                                            </p>
+                                        </td>
+                                {% endfor %}
+                                </tr>
+                            {% endfor %}
+
+                        </table>
+                        <input type="submit" class="btn btn-outline-primary btn-lg" value="Next Question">
+                    </form>
+
+                    <script>
+                        // Resizes images to have max 4 on each horizontal row, only decreasing their resolution, will
+                        // not increase their resolution
+                        window.addEventListener('resize', resizeImages);
+                        resizeImages();
+
+                        function resizeImages() {
+                            var pc_files = document.getElementsByClassName("pc_files");
+                            var num_images_in_row = pc_files.length;
+
+                            if(num_images_in_row > 4) {
+                                num_images_in_row = 4;
                             }
 
-                            const gt_image = document.getElementsByClassName("gt_image");
-                            if(gt_image[0] != undefined) {
-                                gt_image[0].width = image_width;
+                            const screen_width = $("#div_container").css('max-width');
+                            let image_width = ((parseInt(screen_width) - 30) / num_images_in_row) - 10;
+
+                            if(image_width < pc_files[0].width) {
+                                for(var i = 0; i < pc_files.length; i++) {
+                                    pc_files[i].width = image_width;
+                                }
+
+                                const gt_file = document.getElementsByClassName("gt_file");
+                                if(gt_file[0] != undefined) {
+                                    gt_file[0].width = image_width;
+                                }
                             }
                         }
-                    }
-                </script>
-
+                    </script>
+                {% endif %}
             {% endif %}
 
 
@@ -140,16 +231,31 @@
                 <script type="text/javascript" src="{% static 'js/Sortable.min.js' %}"></script>
 
                 {% if groundTruth %}
-                    <p class="colourText">Below is the original image.</p>
-                    <br>
-                    <img src="{{ groundTruth.choice_image.url }}" alt="img"  onclick="focusImage(this);" class="gt_image">
-                    <br>
+                    {% if experiment_type == 'image' %}
+                        <p class="colourText">Below is the original image.</p>
+                        <br>
+                        <img src="{{ groundTruth.choice_image.url }}" alt="img"  onclick="focusImage(this);" class="gt_file">
+                        <br>
+                    {% else %}
+                        <p class="colourText">Below is the original video.</p>
+                        <video class="gt_file" controls>
+                            <source src="{{ groundTruth.choice_image.url }}" type="video/mp4">
+                        </video>
+                        <br>
+                    {% endif %}
                 {% endif %}
 
-                <p class="colourText">Below is a list of images. Sort these images by how good they look to you. Place your best one at the top,
-                and the worst at the bottom. You change the ordering by holding and dragging the handle to the left of every
-                image. Spend time examining each one, you can enlarge an
-                    image to its original resolution by clicking on it.</p>
+                {% if experiment_type == 'image' %}
+                    <p id="imageText" class="colourText">Below is a list of images. Sort these images by how good they look to you. Place your best one at the top,
+                    and the worst at the bottom. You change the ordering by holding and dragging the handle to the left of every
+                    image. Spend time examining each one, you can enlarge an
+                        image to its original resolution by clicking on it.</p>
+                {% else %}
+                    <p class="colourText">Below is a list of images. Sort these images by how good they look to you. Place your best one at the top,
+                    and the worst at the bottom. You change the ordering by holding and dragging the handle to the left of every
+                    image. Spend time examining each one - you can play, pause, replay and enlarge each video.</p>
+                {% endif %}
+
 
                 <form action="{% url 'experimentApp:vote' experiment_slug question.question_num %}" id="orderingForm" method="post">
                     {% csrf_token %}
@@ -163,8 +269,16 @@
                                     </td>
                                     <td style="padding: 5px 5px 5px 5px;">
                                         <p class="colourText">{{ choice.choice_text }}</p>
-                                        <img src="{{ choice.choice_image.url }}" onclick="focusImage(this); viewImage(this);" class="rk_images"
-                                        id="rankingChoice{{ forloop.counter }}"/>
+                                        {% if experiment_type == 'image' %}
+                                            <img src="{{ choice.choice_image.url }}" onclick="focusImage(this); viewImage(this);" class="rk_files"
+                                                id="rankingChoice{{ forloop.counter }}"/>
+                                        {% else %}
+                                            <video id="rankingChoice{{ forloop.counter }}" class="rk_files" controls>
+                                                <source src="{{ choice.choice_image.url }}" type="video/mp4">
+                                            </video>
+                                        {% endif %}
+
+
                                     </td>
                                 </tr>
                             {% endfor %}
@@ -204,7 +318,7 @@
                     resizeImages();
 
                     function resizeImages() {
-                        const rk_images = document.getElementsByClassName("rk_images");
+                        const rk_files = document.getElementsByClassName("rk_files");
                         const screen_width = $("#div_container").css('max-width');
 
                         let image_width = -1;
@@ -216,30 +330,34 @@
                             image_width = 150;
                         }
 
-                        for(var i = 0; i < rk_images.length; i++) {
-                            rk_images[i].width = image_width;
+                        for(var i = 0; i < rk_files.length; i++) {
+                            rk_files[i].width = image_width;
                         }
-                        const gt_image = document.getElementsByClassName("gt_image");
-                        if(gt_image[0] != undefined) {
-                            gt_image[0].width = image_width;
+                        const gt_file = document.getElementsByClassName("gt_file");
+                        if(gt_file[0] != undefined) {
+                            gt_file[0].width = image_width;
                         }
                     }
 
                     // Tracks which images haven't been viewed by the user
-                    const rk_images = document.getElementsByClassName("rk_images");
-                    var rk_images_not_viewed = [];
-                    for(var i = 0; i < rk_images.length; i++) {
-                        rk_images_not_viewed.push(rk_images[i].id);
-                    }
+                    if(document.getElementById("imageText")) {
+                        const rk_files = document.getElementsByClassName("rk_files");
+                        var rk_files_not_viewed = [];
+                        for(var i = 0; i < rk_files.length; i++) {
+                            rk_files_not_viewed.push(rk_files[i].id);
+                        }
 
-                    function viewImage(image) {
-                        const index = rk_images_not_viewed.indexOf(image.id);
-                        if(index != -1) {
-                            rk_images_not_viewed.splice(index, 1);
+                        function viewImage(image) {
+                            const index = rk_files_not_viewed.indexOf(image.id);
+                            if(index != -1) {
+                                rk_files_not_viewed.splice(index, 1);
+                            }
+                            if(rk_files_not_viewed.length == 0) {
+                                document.getElementById('saveOrdering').disabled = false;
+                            }
                         }
-                        if(rk_images_not_viewed.length == 0) {
-                            document.getElementById('saveOrdering').disabled = false;
-                        }
+                    } else {
+                        document.getElementById('saveOrdering').disabled = false;
                     }
                 </script>
             {% endif %}
@@ -247,11 +365,20 @@
 
             {% if question_type == 'RATING' %}
                 {% if groundTruth %}
-                    <p class="colourText">Below is the original image.</p>
-                    <br>
-                    <img src="{{ groundTruth.choice_image.url }}" alt="img" class="gt_image">
-                    <br>
+                    {% if experiment_type == 'image' %}
+                        <p class="colourText">Below is the original image.</p>
+                        <br>
+                        <img src="{{ groundTruth.choice_image.url }}" alt="img" class="gt_file">
+                        <br>
+                    {% else %}
+                        <p class="colourText">Below is the original video.</p>
+                        <video class="gt_file" controls>
+                            <source src="{{ groundTruth.choice_image.url }}" type="video/mp4">
+                        </video>
+                        <br>
+                    {% endif %}
                 {% endif %}
+
 
                 {% if select_choice == 'INPUT_FIELD' %}
                     <p class="colourText">Choose value rating for each image between {{ range_lower_bound }} - {{ range_upper_bound }}</p>
@@ -264,7 +391,13 @@
                                 <tr>
                                     {% for rating in row %}
                                         <td style="padding: 5px 5px 5px 5px;">
-                                            <img src="{{ rating.choice_image.url }}" onclick="focusImage(this);" class="rt_images" choice_text="{{ rating.choice_text }}"/>
+                                            {% if experiment_type == 'image' %}
+                                                <img src="{{ rating.choice_image.url }}" onclick="focusImage(this);" class="rt_files" choice_text="{{ rating.choice_text }}"/>
+                                            {% else %}
+                                                <video class="rt_files" choice_text="{{ rating.choice_text }}" controls>
+                                                    <source src="{{ rating.choice_image.url }}" type="video/mp4">
+                                                </video>
+                                            {% endif %}
 
                                             <p style="text-align: center;">
                                                 <input name="rating" id="rating{{ forloop.counter }}{{forloop.parentloop.counter}}" class="rt_inputs">
@@ -280,7 +413,7 @@
 
                 <script>
                     // Adds reference from each image to respective input field
-                    const rt_image_list = document.getElementsByClassName("rt_images");
+                    const rt_image_list = document.getElementsByClassName("rt_files");
                     const input_field_list = document.querySelectorAll('[id^="rating"]');
 
                     for(var i = 0; i < rt_image_list.length; i++) {
@@ -303,8 +436,8 @@
                     resizeImages();
 
                     function resizeImages() {
-                        var rt_images = document.getElementsByClassName("rt_images");
-                        var num_images_in_row = rt_images.length;
+                        var rt_files = document.getElementsByClassName("rt_files");
+                        var num_images_in_row = rt_files.length;
 
                         if(num_images_in_row > 4) {
                             num_images_in_row = 4;
@@ -313,14 +446,14 @@
                         const screen_width = $("#div_container").css('max-width');
                         let image_width = ((parseInt(screen_width) - 30) / num_images_in_row) - 10;
 
-                        if(image_width < rt_images[0].width) {
-                            for(var i = 0; i < rt_images.length; i++) {
-                                rt_images[i].width = image_width;
+                        if(image_width < rt_files[0].width) {
+                            for(var i = 0; i < rt_files.length; i++) {
+                                rt_files[i].width = image_width;
                             }
 
-                            const gt_image = document.getElementsByClassName("gt_image");
-                            if(gt_image[0] != undefined) {
-                                gt_image[0].width = image_width;
+                            const gt_file = document.getElementsByClassName("gt_file");
+                            if(gt_file[0] != undefined) {
+                                gt_file[0].width = image_width;
                             }
                         }
                     }
@@ -336,10 +469,16 @@
                     <form action="{% url 'experimentApp:vote' experiment_slug question.question_num %}" method="post">
                         {% csrf_token %}
                         <table>
-                            {% for choice in rating_list %}
+                            {% for rating in rating_list %}
                             <tr>
                                 <td style="padding: 5px 5px 5px 5px; vertical-align: top;">
-                                    <img src="{{ choice.choice_image.url }}" onclick="focusImage(this);" class="rt_images" choice_text="{{ rating.choice_text }}"/>
+                                    {% if experiment_type == 'image' %}
+                                        <img src="{{ rating.choice_image.url }}" onclick="focusImage(this);" class="rt_files" choice_text="{{ rating.choice_text }}"/>
+                                    {% else %}
+                                        <video class="rt_files" choice_text="{{ rating.choice_text }}" controls>
+                                            <source src="{{ rating.choice_image.url }}" type="video/mp4">
+                                        </video>
+                                    {% endif %}
                                 </td>
                                 <td style="padding: 5px 5px 5px 5px;">
                                     {% for index in num_radio_choices|get_range %}
@@ -357,102 +496,186 @@
 
                     <script>
                         // Resizes images to constant size
-                        const rt_images = document.getElementsByClassName("rt_images");
+                        const rt_files = document.getElementsByClassName("rt_files");
                         let image_width = 275;
 
-                        for(var i = 0; i < rt_images.length; i++) {
-                            rt_images[i].width = image_width;
+                        for(var i = 0; i < rt_files.length; i++) {
+                            rt_files[i].width = image_width;
                         }
 
-                        const gt_image = document.getElementsByClassName("gt_image");
-                        if(gt_image[0] != undefined) {
-                            gt_image[0].width = image_width;
+                        const gt_file = document.getElementsByClassName("gt_file");
+                        if(gt_file[0] != undefined) {
+                            gt_file[0].width = image_width;
                         }
                     </script>
                 {% endif %}
 
 
-            {% if select_choice == 'SLIDER' %}
-                <p class="colourText">Choose value rating for each image between {{ range_lower_bound }} - {{ range_upper_bound }}</p>
+                {% if select_choice == 'SLIDER' %}
+                    <p class="colourText">Choose value rating for each image between {{ range_lower_bound }} - {{ range_upper_bound }}</p>
+
+                    <form action="{% url 'experimentApp:vote' experiment_slug question.question_num %}" method="post">
+                        {% csrf_token %}
+                        <table>
+                            {% for row in rating_list %}
+                                <tr>
+                                    {% for rating in row %}
+                                        <td style="padding: 5px 5px 5px 5px;">
+                                            {% if experiment_type == 'image' %}
+                                                <img src="{{ rating.choice_image.url }}" onclick="focusImage(this);" class="rt_files" choice_text="{{ rating.choice_text }}"/>
+                                            {% else %}
+                                                <video class="rt_files" choice_text="{{ rating.choice_text }}" controls>
+                                                    <source src="{{ rating.choice_image.url }}" type="video/mp4">
+                                                </video>
+                                            {% endif %}
+
+                                            <div class="slidecontainer" style="text-align: center">
+                                                <label for="ratingChoiceSlider{{ forloop.counter0 }}{{ forloop.parentloop.counter0 }}" class="colourText">{{ rating.choice_text }}</label>
+                                                <br>
+                                                <input type="range" min="{{ range_lower_bound }}" max="{{ range_upper_bound }}" class="slider"
+                                                       id="ratingChoiceSlider{{ forloop.counter0 }}{{ forloop.parentloop.counter0 }}"
+                                                       oninput="updateSliderValue.call(this)">
+                                                <p class="colourText">Value: <span id="sliderValue{{ forloop.counter0 }}{{ forloop.parentloop.counter0 }}"></span></p>
+                                            </div>
+                                        </td>
+                                {% endfor %}
+                                </tr>
+                            {% endfor %}
+                        </table>
+                        <input type="submit" class="btn btn-outline-primary btn-lg" value="Next Question">
+                    </form>
+
+                    <script>
+                        // Dynamically displays value associated with each slider
+                        var rt_image_list = document.getElementsByClassName("rt_files");
+                        var slider = document.querySelectorAll('[id^="ratingChoiceSlider"]');
+                        var slider_value = document.querySelectorAll('[id^="sliderValue"]');
+
+                        for(var i = 0; i < slider.length; i++) {
+                            slider[i].slider_val = slider_value[i];
+                            slider_value[i].innerHTML = slider[i].value;
+
+                            // Name values so backend can query them in order
+                            slider[i].name = "ratingChoiceSlider".concat(i.toString());
+
+                            // Reference from image to slider
+                            rt_image_list[i].sliderRef = slider[i];
+                        }
+
+                        function updateSliderValue(e) {
+                            this.slider_val.innerHTML = this.value;
+                        }
+
+                        // Resizes images to have max 4 on each horizontal row, only decreasing their resolution, will
+                        // not increase their resolution
+                        window.addEventListener('resize', resizeImages);
+                        resizeImages();
+
+                        function resizeImages() {
+                            const rt_files = document.getElementsByClassName("rt_files");
+                            var num_images_in_row = rt_files.length;
+
+                            if(num_images_in_row > 4) {
+                                num_images_in_row = 4;
+                            }
+
+                            const screen_width = $("#div_container").css('max-width');
+                            let image_width = ((parseInt(screen_width) - 30) / num_images_in_row) - 10;
+
+                            if(image_width < rt_files[0].width) {
+                                for(var i = 0; i < rt_files.length; i++) {
+                                    rt_files[i].width = image_width;
+                                }
+
+                                const gt_file = document.getElementsByClassName("gt_file");
+                                if(gt_file[0] != undefined) {
+                                    gt_file[0].width = image_width;
+                                }
+                            }
+                        }
+                    </script>
+
+                {% endif %}
+
+            {% endif %}
+
+            {% if question_type == 'overlay' %}
+
+                {% if groundTruth %}
+                    {% if experiment_type == 'image' %}
+                        <p class="colourText">Below is the original image.</p>
+                        <br>
+                        <img src="{{ groundTruth.choice_image.url }}" alt="img" class="gt_file">
+                        <br>
+                    {% else %}
+                        <p class="colourText">Below is the original video.</p>
+                        <video class="gt_file" controls>
+                            <source src="{{ groundTruth.choice_image.url }}" type="video/mp4">
+                        </video>
+                        <br>
+                    {% endif %}
+                {% endif %}
+
+                <p class="colourText">Select the image that you believe looks best.</p>
 
                 <form action="{% url 'experimentApp:vote' experiment_slug question.question_num %}" method="post">
                     {% csrf_token %}
-                    <table>
-                        {% for row in rating_list %}
-                            <tr>
-                                {% for rating in row %}
-                                    <td style="padding: 5px 5px 5px 5px;">
 
-                                        <img src="{{ rating.choice_image.url }}" onclick="focusImage(this);" class="rt_images" choice_text="{{ rating.choice_text }}"/>
+                    <table style="margin-left: auto; margin-right: auto;">
+                        <tr>
+                            <td>
+                                {% if experiment_type == 'image' %}
+                                    <img id="media_container" src onclick="focusImage(this);" choice_text="{{ rating.choice_text }}"/>
+                                {% else %}
+                                    <video controls>
+                                        <source id="media_container" src type="video/mp4">
+                                    </video>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <ul>
+                                    {% for choice in choice_set %}
+                                        <p>
+                                            <input type="radio" class="radioInputs" name="choice" id="{{ forloop.counter0 }}" value="{{ choice.id }}" onclick="changeMedia(this);">
+                                            <label class="colourText" for="{{ forloop.counter0 }}">{{ choice.choice_text }}</label>
+                                        </p>
+                                    {% endfor %}
+                                </ul>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <button type="button" onclick="nextMediaSrc();">Next Media</button>
+                            </td>
+                            <td>
 
-                                        <div class="slidecontainer" style="text-align: center">
-                                            <label for="ratingChoiceSlider{{ forloop.counter0 }}{{ forloop.parentloop.counter0 }}" class="colourText">{{ rating.choice_text }}</label>
-                                            <br>
-                                            <input type="range" min="{{ range_lower_bound }}" max="{{ range_upper_bound }}" class="slider"
-                                                   id="ratingChoiceSlider{{ forloop.counter0 }}{{ forloop.parentloop.counter0 }}"
-                                                   oninput="updateSliderValue.call(this)">
-                                            <p class="colourText">Value: <span id="sliderValue{{ forloop.counter0 }}{{ forloop.parentloop.counter0 }}"></span></p>
-                                        </div>
-                                    </td>
-                            {% endfor %}
-                            </tr>
-                        {% endfor %}
+                            </td>
+                        </tr>
                     </table>
+
                     <input type="submit" class="btn btn-outline-primary btn-lg" value="Next Question">
                 </form>
 
                 <script>
-                    // Dynamically displays value associated with each slider
-                    var rt_image_list = document.getElementsByClassName("rt_images");
-                    var slider = document.querySelectorAll('[id^="ratingChoiceSlider"]');
-                    var slider_value = document.querySelectorAll('[id^="sliderValue"]');
+                    files_list = {{ file_urls|safe }};
+                    media_container = document.getElementById("media_container");
+                    src_index = -1;
 
-                    for(var i = 0; i < slider.length; i++) {
-                        slider[i].slider_val = slider_value[i];
-                        slider_value[i].innerHTML = slider[i].value;
-
-                        // Name values so backend can query them in order
-                        slider[i].name = "ratingChoiceSlider".concat(i.toString());
-
-                        // Reference from image to slider
-                        rt_image_list[i].sliderRef = slider[i];
+                    function nextMediaSrc() {
+                        src_index = (src_index + 1) % files_list.length;
+                        media_container.src = files_list[src_index];
+                        document.getElementsByClassName("radioInputs")[src_index].checked = true;
                     }
 
-                    function updateSliderValue(e) {
-                        this.slider_val.innerHTML = this.value;
-                    }
+                    // Display first media source and enable appropriate radio
+                    nextMediaSrc();
+                    document.getElementsByClassName("radioInputs")[0].checked = true;
 
-                    // Resizes images to have max 4 on each horizontal row, only decreasing their resolution, will
-                    // not increase their resolution
-                    window.addEventListener('resize', resizeImages);
-                    resizeImages();
-
-                    function resizeImages() {
-                        const rt_images = document.getElementsByClassName("rt_images");
-                        var num_images_in_row = rt_images.length;
-
-                        if(num_images_in_row > 4) {
-                            num_images_in_row = 4;
-                        }
-
-                        const screen_width = $("#div_container").css('max-width');
-                        let image_width = ((parseInt(screen_width) - 30) / num_images_in_row) - 10;
-
-                        if(image_width < rt_images[0].width) {
-                            for(var i = 0; i < rt_images.length; i++) {
-                                rt_images[i].width = image_width;
-                            }
-
-                            const gt_image = document.getElementsByClassName("gt_image");
-                            if(gt_image[0] != undefined) {
-                                gt_image[0].width = image_width;
-                            }
-                        }
+                    function changeMedia(e) {
+                        src_index = e.id;
+                        media_container.src = files_list[src_index % files_list.length];
                     }
                 </script>
-
-            {% endif %}
-
             {% endif %}
 
         </div>

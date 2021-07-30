@@ -9,6 +9,7 @@ class Experiment(models.Model):
     experiment_description = models.CharField(max_length=500)
     pub_date = models.DateTimeField('date created', default=now)
 
+    experiment_type = models.CharField(max_length=50)  # 'image' 'video'
     question_type = models.CharField(max_length=50)  # 'pairwise-comparison' 'ranking' 'rating'
 
     def __str__(self):
@@ -44,6 +45,11 @@ class ExperimentRefresher(models.Model):
     custom_image = models.ImageField(upload_to='refresherImages/')
 
 
+# If model exists for experiment, then experiment uses overlay option
+class ExperimentOverlay(models.Model):
+    experiment = models.ForeignKey(Experiment, on_delete=models.CASCADE)
+
+
 # Each question is represented by this model, choices in such question have foreign keys to this
 class ExperimentQuestion(models.Model):
     experiment = models.ForeignKey(Experiment, on_delete=models.CASCADE)
@@ -60,7 +66,7 @@ class Pairwise(models.Model):
 
     choice_algorithm = models.CharField(max_length=200)  # Name of algorithm applied to image
     choice_text = models.CharField(max_length=200)
-    choice_image = models.ImageField(upload_to='choiceImages/', default='default/default.jpg')
+    choice_image = models.FileField(upload_to='choiceImages/')
 
     def __str__(self):
         return self.choice_text
@@ -70,7 +76,7 @@ class PairwiseGroundTruth(models.Model):
     question = models.ForeignKey(ExperimentQuestion, on_delete=models.CASCADE)
 
     choice_text = models.CharField(max_length=200)
-    choice_image = models.ImageField(upload_to='choiceImages/', default='default/default.jpg')
+    choice_image = models.FileField(upload_to='choiceImages/')
 
 
 class PairwiseChoice(models.Model):
@@ -92,7 +98,7 @@ class Ranking(models.Model):
 
     choice_algorithm = models.CharField(max_length=200)  # Name of algorithm applied to image
     choice_text = models.CharField(max_length=200)
-    choice_image = models.ImageField(upload_to='choiceImages/', default='default/default.jpg')
+    choice_image = models.FileField(upload_to='choiceImages/')
 
     def __str__(self):
         return self.choice_text
@@ -102,7 +108,7 @@ class RankingGroundTruth(models.Model):
     question = models.ForeignKey(ExperimentQuestion, on_delete=models.CASCADE)
 
     choice_text = models.CharField(max_length=200)
-    choice_image = models.ImageField(upload_to='choiceImages/', default='default/default.jpg')
+    choice_image = models.FileField(upload_to='choiceImages/')
 
 
 class RankingChoice(models.Model):
@@ -124,7 +130,7 @@ class Rating(models.Model):
 
     choice_algorithm = models.CharField(max_length=200)  # Name of algorithm applied to image
     choice_text = models.CharField(max_length=200)
-    choice_image = models.ImageField(upload_to='choiceImages/', default='default/default.jpg')
+    choice_image = models.FileField(upload_to='choiceImages/')
 
     select_choice = models.CharField(max_length=50, choices=RATING_SELECT_CHOICES)
 
@@ -139,7 +145,7 @@ class RatingGroundTruth(models.Model):
     question = models.ForeignKey(ExperimentQuestion, on_delete=models.CASCADE)
 
     choice_text = models.CharField(max_length=200)
-    choice_image = models.ImageField(upload_to='choiceImages/', default='default/default.jpg')
+    choice_image = models.FileField(upload_to='choiceImages/')
 
 
 class RatingChoice(models.Model):
@@ -153,3 +159,11 @@ class RatingChoice(models.Model):
 class EmailModel(models.Model):
     subject = models.CharField(max_length=200)
     message = models.CharField(max_length=1000)
+
+
+class VideoPairwise(models.Model):
+    question = models.ForeignKey(ExperimentQuestion, on_delete=models.CASCADE)
+
+    choice_algorithm = models.CharField(max_length=200)  # Name of algorithm applied to image
+    choice_text = models.CharField(max_length=200)
+    choice_video = models.FileField(upload_to='videos/')

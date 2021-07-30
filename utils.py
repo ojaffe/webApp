@@ -5,11 +5,12 @@ from experimentApp.models import ExperimentSlug, ExperimentCustomColours, Experi
 
 
 # Helper function to save generic details about experiment and options that are present in all types of experiments
-def saveExperimentInstance(request, experimentForm, experiment_type):
+def saveExperimentInstance(request, experimentForm, experiment_type, question_type):
 
     # Save Experiment model
     experimentInstance = experimentForm.save(commit=False)
-    experimentInstance.question_type = experiment_type
+    experimentInstance.experiment_type = experiment_type
+    experimentInstance.question_type = question_type
     experimentInstance.save()
 
     # Generates and saves experiment slug
