@@ -2,7 +2,7 @@
 <html lang="en">
     <head>
         <meta charset="UTF-8">
-        <title>Index</title>
+        <title>Experiment Details</title>
     </head>
 
     <body>
@@ -38,7 +38,9 @@
             <p>{{ experiment_description }}</p>
 
             <h2 class="mt-4">Results</h2>
-            <p>So far people have answered this experiment.</p>
+
+
+            <p>So far {{ no_responses }} {% if no_responses == 1 %} person has {% else %} people have {% endif %} answered this experiment.</p>
 
             <p>Download the full results of this experiment with the button below.</p>
 
@@ -51,7 +53,7 @@
                     </li>
                     {% endif %}
 
-                    {% if question_type == 'RATING' %}
+                    {% if experimentColours %}
                     <li>
                         text_colour, background_colour - Custom colours for text and background
                     </li>

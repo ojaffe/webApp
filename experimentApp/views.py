@@ -1,13 +1,13 @@
 from django.contrib.auth.decorators import login_required
-from django.core.mail import send_mail, BadHeaderError, mail_admins
+from django.core.mail import BadHeaderError, mail_admins
 from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.shortcuts import render, get_object_or_404
 from django.urls import reverse
 
-from utils import sortInputFiles, generateUniqueSlug, sortInputDirs, saveExperimentInstance
+from utils import sortInputFiles, sortInputDirs, saveExperimentInstance
 from .models import Experiment, ExperimentQuestion, Pairwise, PairwiseGroundTruth, Ranking, RankingChoice, Rating, \
     RatingChoice, ExperimentRegister, PairwiseChoice, RankingGroundTruth, RatingGroundTruth, ExperimentRefresher, \
-    ExperimentSlug, ExperimentCustomColours, RankingOptions, VideoPairwise, ExperimentOverlay
+    ExperimentSlug, ExperimentCustomColours, RankingOptions, ExperimentOverlay
 from .forms import ExperimentForm, OrderingForm, EmailForm
 
 from PIL import Image
@@ -23,7 +23,8 @@ def index(request):
     # Construct dict of experiment names and their respective slug, sorted by above date
     experiment_dict = {}
     for index, experiment in enumerate(latest_experiment_list):
-        experiment_dict[index] = {'title': experiment.experiment_title, 'slug': get_object_or_404(ExperimentSlug, experiment=experiment).slug}
+        experiment_dict[index] = {'title': experiment.experiment_title,
+                                  'slug': get_object_or_404(ExperimentSlug, experiment=experiment).slug}
 
     return render(request, 'experimentApp/index.html', {'experiment_dict': experiment_dict})
 
@@ -156,14 +157,8 @@ def createExperiment(request):
             # Otherwise render same view with appropriate error message
             experimentForm = ExperimentForm()
             return render(request, 'experimentApp/createExperiment.html', {'experimentForm': experimentForm,
-                                                                               'error_message': 'Please enter a valid '
-                                                                                                'title and description'})
-
-    else:
-        return render(request, 'experimentApp/stageView.html', {'title': 'Error',
-                                                                'status_message': 'Error on requesting view: wrong'
-                                                                                  ' request method. Please attempt to create an'
-                                                                                  ' experiment again by navigating to home.'})
+                                                                           'error_message': 'Please enter a valid '
+                                                                                            'title and description'})
 
 
 # View to create pairwise-comparison experiment on POST request from experiment creation. Creates respective models
@@ -177,7 +172,9 @@ def createExperimentPC(request, sorted_files):
     if experimentFullForm.is_valid():
 
         # Save experiment details+options
-        experimentInstance, experimentSlug = saveExperimentInstance(request, experimentForm, request.POST.get("experimentType"), 'pairwise-comparison')
+        experimentInstance, experimentSlug = saveExperimentInstance(request, experimentForm,
+                                                                    request.POST.get("experimentType"),
+                                                                    'pairwise-comparison')
 
         # Save overlay option if chosen
         if request.POST.get("pcOverlay"):
@@ -191,8 +188,8 @@ def createExperimentPC(request, sorted_files):
             for file_set in sorted_files:
 
                 question = ExperimentQuestion.objects.create(question_num=question_counter,
-                                              question_text='Question ' + str(question_counter),
-                                              experiment=experimentInstance)
+                                                             question_text='Question ' + str(question_counter),
+                                                             experiment=experimentInstance)
                 question.save()
                 question_counter += 1
 
@@ -291,12 +288,13 @@ def createExperimentRK(request, sorted_files):
     if experimentFullForm.is_valid():
 
         # Save experiment details+options
-        experimentInstance, experimentSlug = saveExperimentInstance(request, experimentForm, request.POST.get("experimentType"), 'RANKING')
+        experimentInstance, experimentSlug = saveExperimentInstance(request, experimentForm,
+                                                                    request.POST.get("experimentType"), 'RANKING')
 
         # Save ranking options
         if request.POST.get("rkChoiceRandomise"):
             RankingOptions.objects.create(experiment=experimentInstance,
-                                      randomiseInitialOrdering=True)
+                                          randomiseInitialOrdering=True)
         else:
             RankingOptions.objects.create(experiment=experimentInstance,
                                           randomiseInitialOrdering=False)
@@ -348,7 +346,8 @@ def createExperimentRT(request, sorted_files):
     if experimentFullForm.is_valid():
 
         # Save experiment details+options
-        experimentInstance, experimentSlug = saveExperimentInstance(request, experimentForm, request.POST.get("experimentType"), 'RATING')
+        experimentInstance, experimentSlug = saveExperimentInstance(request, experimentForm,
+                                                                    request.POST.get("experimentType"), 'RATING')
 
         # Get options
         ground_truth = request.POST.get("groundTruthOption") == "on"
@@ -402,7 +401,6 @@ def createExperimentRT(request, sorted_files):
 # taking through their session, thus we "register" user through sessions to this experiment with unique id to
 # differentiate between their previous answers and other user's answers
 def experimentConsent(request, experiment_slug):
-
     # Get experiment associated with given slug
     experiment = get_object_or_404(ExperimentSlug, slug=experiment_slug).experiment
 
@@ -432,7 +430,6 @@ def experimentConsent(request, experiment_slug):
 # Admin view of experiment, admins can view the experiment, view+download results and delete experiment.
 @login_required
 def experimentDetail(request, experiment_slug):
-
     # Get experiment associated with given slug
     experiment = get_object_or_404(ExperimentSlug, slug=experiment_slug).experiment
 
@@ -445,13 +442,28 @@ def experimentDetail(request, experiment_slug):
     except Http404:
         experimentColours = False
 
+    # Get no. people who have started the experiment and answered at least one question
+    registers = ExperimentRegister.objects.filter(experiment=experiment)
+    no_responses = 0
+    for register in registers:
+        if experiment.question_type == 'pairwise-comparison':
+            if PairwiseChoice.objects.filter(experimentRegister=register).exists():
+                no_responses += 1
+        elif experiment.question_type == 'RANKING':
+            if RankingChoice.objects.filter(experimentRegister=register).exists():
+                no_responses += 1
+        elif experiment.question_type == 'RATING':
+            if RatingChoice.objects.filter(experimentRegister=register).exists():
+                no_responses += 1
+
     return render(request, 'experimentApp/experimentDetail.html', {'experiment_slug': experiment_slug,
                                                                    'experiment_title': experiment.experiment_title,
                                                                    'experiment_description': experiment.experiment_description,
                                                                    'pub_date': experiment.pub_date,
                                                                    'experiment_url': experiment_url,
                                                                    'question_type': experiment.question_type,
-                                                                   'experimentColours': experimentColours})
+                                                                   'experimentColours': experimentColours,
+                                                                   'no_responses': no_responses})
 
 
 # View to delete given experiment with pk
@@ -524,7 +536,8 @@ def experimentQuestion(request, experiment_slug, question_num):
                     prev_question = get_object_or_404(ExperimentQuestion, experiment=experiment,
                                                       question_num=prev_question_num)
                     prev_choice_set = Pairwise.objects.filter(question=prev_question)
-                    get_object_or_404(PairwiseChoice, experimentRegister=experiment_register, pairwise__in=prev_choice_set)
+                    get_object_or_404(PairwiseChoice, experimentRegister=experiment_register,
+                                      pairwise__in=prev_choice_set)
                 except Http404:
                     return HttpResponseRedirect(
                         reverse('experimentApp:experimentQuestion', args=(experiment_slug, prev_question_num)))
@@ -541,7 +554,6 @@ def experimentQuestion(request, experiment_slug, question_num):
                     file_urls.append(choice.choice_image.url)
 
                 choice_list = choice_set
-
             except Http404:
                 overlay_enabled = False
 
@@ -561,32 +573,22 @@ def experimentQuestion(request, experiment_slug, question_num):
             try:
                 groundTruth = get_object_or_404(PairwiseGroundTruth, question=question)
             except Http404:
+                groundTruth = None
 
-                return render(request, 'experimentApp/experimentQuestion.html',
-                              {'experiment_type': experiment_type, 'question_type': experiment.question_type, 'question': question,
-                               'choice_list': choice_list,
-                               'experiment_slug': experiment_slug, 'question_error_message': error_message,
-                               'time_shown': time_shown,
-                               'rf_colour': custom_colour,
-                               'rf_image': custom_image,
-                               'text_colour': text_colour,
-                               'background_colour': background_colour,
-                               'overlay_enabled': overlay_enabled,
-                               'file_urls': file_urls})
-            else:
-
-                return render(request, 'experimentApp/experimentQuestion.html',
-                              {'experiment_type': experiment_type, 'question_type': experiment.question_type, 'question': question,
-                               'choice_list': choice_list,
-                               'experiment_slug': experiment_slug, 'groundTruth': groundTruth,
-                               'question_error_message': error_message,
-                               'time_shown': time_shown,
-                               'rf_colour': custom_colour,
-                               'rf_image': custom_image,
-                               'text_colour': text_colour,
-                               'background_colour': background_colour,
-                               'overlay_enabled': overlay_enabled,
-                               'file_urls': file_urls})
+            return render(request, 'experimentApp/experimentQuestion.html',
+                          {'experiment_type': experiment_type, 'question_type': experiment.question_type,
+                           'question': question,
+                           'choice_list': choice_list,
+                           'experiment_slug': experiment_slug,
+                           'groundTruth': groundTruth,
+                           'question_error_message': error_message,
+                           'time_shown': time_shown,
+                           'rf_colour': custom_colour,
+                           'rf_image': custom_image,
+                           'text_colour': text_colour,
+                           'background_colour': background_colour,
+                           'overlay_enabled': overlay_enabled,
+                           'file_urls': file_urls})
 
         elif experiment.question_type == 'RANKING':
 
@@ -608,24 +610,21 @@ def experimentQuestion(request, experiment_slug, question_num):
 
             ranking_set = Ranking.objects.filter(question=question)
             ranking_set = list(ranking_set)
-            random.shuffle(ranking_set)
+
+            # Shuffle with user seed, so every user gets different ordering but user gets same order on refresh.
+            # Squared to prevent different users having same seed for small no. experiment_register
+            random.Random(experiment_register.pk * experiment_register.pk + question_num).shuffle(ranking_set)
 
             try:
                 groundTruth = get_object_or_404(RankingGroundTruth, question=question)
             except Http404:
-                return render(request, 'experimentApp/experimentQuestion.html',
-                              {'experiment_type': experiment_type, 'question_type': experiment.question_type, 'question': question,
+                groundTruth = None
+
+            return render(request, 'experimentApp/experimentQuestion.html',
+                              {'experiment_type': experiment_type, 'question_type': experiment.question_type,
+                               'question': question,
                                'ranking_set': ranking_set, 'experiment_slug': experiment_slug,
-                               'question_error_message': error_message,
-                               'time_shown': time_shown,
-                               'rf_colour': custom_colour,
-                               'rf_image': custom_image,
-                               'text_colour': text_colour,
-                               'background_colour': background_colour})
-            else:
-                return render(request, 'experimentApp/experimentQuestion.html',
-                              {'experiment_type': experiment_type, 'question_type': experiment.question_type, 'question': question,
-                               'ranking_set': ranking_set, 'experiment_slug': experiment_slug, 'groundTruth': groundTruth,
+                               'groundTruth': groundTruth,
                                'question_error_message': error_message,
                                'time_shown': time_shown,
                                'rf_colour': custom_colour,
@@ -652,106 +651,61 @@ def experimentQuestion(request, experiment_slug, question_num):
                         reverse('experimentApp:experimentQuestion', args=(experiment_slug, prev_question_num)))
 
             rating_set = Rating.objects.filter(question=question)
-            num_radio_choices = rating_set[0].range_upper_bound - rating_set[
-                0].range_lower_bound + 1  # Plus one as exclusive
+            num_radio_choices = rating_set[0].range_upper_bound - rating_set[0].range_lower_bound + 1  # Plus one as exclusive
 
             try:
                 groundTruth = get_object_or_404(RatingGroundTruth, question=question)
             except Http404:
+                groundTruth = None
 
-                # Since INPUT_FIELD and SLIDER are organised in rows, we preprocess the data separately
-                if rating_set[0].select_choice == "INPUT_FIELD" or rating_set[0].select_choice == "SLIDER":
+            # Since INPUT_FIELD and SLIDER are organised in rows, we preprocess the data separately
+            if rating_set[0].select_choice == "INPUT_FIELD" or rating_set[0].select_choice == "SLIDER":
 
-                    # Since we limit 4 choices per row on the website, we organise the data to be manipulated easier
-                    rating_list = []
-                    row = []
-                    for index, choice in enumerate(rating_set):
-                        if index % 4 == 0 and index != 0:
-                            rating_list.append(row)
-                            row = []
-                        row.append(choice)
-
-                    # Add on remaining row, even if not "full" to 4 choices, if not empty
-                    if row:
+                # Since we limit 4 choices per row on the website, we organise the data to be manipulated easier
+                rating_list = []
+                row = []
+                for index, choice in enumerate(rating_set):
+                    if index % 4 == 0 and index != 0:
                         rating_list.append(row)
+                        row = []
+                    row.append(choice)
 
-                    return render(request, 'experimentApp/experimentQuestion.html',
-                                  {'experiment_type': experiment_type, 'question_type': experiment.question_type, 'question': question,
-                                   'rating_list': rating_list,
-                                   'experiment_slug': experiment_slug, 'question_error_message': error_message,
-                                   'select_choice': rating_set[0].select_choice,
-                                   'range_lower_bound': rating_set[0].range_lower_bound,
-                                   'range_upper_bound': rating_set[0].range_upper_bound,
-                                   'num_radio_choices': num_radio_choices,
-                                   'time_shown': time_shown,
-                                   'rf_colour': custom_colour,
-                                   'rf_image': custom_image,
-                                   'text_colour': text_colour,
-                                   'background_colour': background_colour})
+                # Add on remaining row, even if not "full" to 4 choices, if not empty
+                if row:
+                    rating_list.append(row)
 
-                else:
-                    return render(request, 'experimentApp/experimentQuestion.html',
-                                  {'experiment_type': experiment_type, 'question_type': experiment.question_type, 'question': question,
-                                   'rating_list': rating_set,
-                                   'experiment_slug': experiment_slug, 'question_error_message': error_message,
-                                   'select_choice': rating_set[0].select_choice,
-                                   'range_lower_bound': rating_set[0].range_lower_bound,
-                                   'range_upper_bound': rating_set[0].range_upper_bound,
-                                   'num_radio_choices': num_radio_choices,
-                                   'time_shown': time_shown,
-                                   'rf_colour': custom_colour,
-                                   'rf_image': custom_image,
-                                   'text_colour': text_colour,
-                                   'background_colour': background_colour})
+                return render(request, 'experimentApp/experimentQuestion.html',
+                              {'experiment_type': experiment_type, 'question_type': experiment.question_type,
+                               'question': question,
+                               'rating_list': rating_list,
+                               'experiment_slug': experiment_slug, 'groundTruth': groundTruth,
+                               'question_error_message': error_message,
+                               'select_choice': rating_set[0].select_choice,
+                               'range_lower_bound': rating_set[0].range_lower_bound,
+                               'range_upper_bound': rating_set[0].range_upper_bound,
+                               'num_radio_choices': num_radio_choices,
+                               'time_shown': time_shown,
+                               'rf_colour': custom_colour,
+                               'rf_image': custom_image,
+                               'text_colour': text_colour,
+                               'background_colour': background_colour})
 
             else:
-
-                # Since INPUT_FIELD and SLIDER are organised in rows, we preprocess the data seperately
-                if rating_set[0].select_choice == "INPUT_FIELD" or rating_set[0].select_choice == "SLIDER":
-
-                    # Since we limit 4 choices per row on the website, we organise the data to be manipulated easier
-                    rating_list = []
-                    row = []
-                    for index, choice in enumerate(rating_set):
-                        if index % 4 == 0 and index != 0:
-                            rating_list.append(row)
-                            row = []
-                        row.append(choice)
-
-                    # Add on remaining row, even if not "full" to 4 choices, if not empty
-                    if row:
-                        rating_list.append(row)
-
-                    return render(request, 'experimentApp/experimentQuestion.html',
-                                  {'experiment_type': experiment_type, 'question_type': experiment.question_type, 'question': question,
-                                   'rating_list': rating_list,
-                                   'experiment_slug': experiment_slug, 'groundTruth': groundTruth,
-                                   'question_error_message': error_message,
-                                   'select_choice': rating_set[0].select_choice,
-                                   'range_lower_bound': rating_set[0].range_lower_bound,
-                                   'range_upper_bound': rating_set[0].range_upper_bound,
-                                   'num_radio_choices': num_radio_choices,
-                                   'time_shown': time_shown,
-                                   'rf_colour': custom_colour,
-                                   'rf_image': custom_image,
-                                   'text_colour': text_colour,
-                                   'background_colour': background_colour})
-
-                else:
-                    return render(request, 'experimentApp/experimentQuestion.html',
-                                  {'experiment_type': experiment_type, 'question_type': experiment.question_type, 'question': question,
-                                   'rating_list': rating_set,
-                                   'experiment_slug': experiment_slug, 'groundTruth': groundTruth,
-                                   'question_error_message': error_message,
-                                   'select_choice': rating_set[0].select_choice,
-                                   'range_lower_bound': rating_set[0].range_lower_bound,
-                                   'range_upper_bound': rating_set[0].range_upper_bound,
-                                   'num_radio_choices': num_radio_choices,
-                                   'time_shown': time_shown,
-                                   'rf_colour': custom_colour,
-                                   'rf_image': custom_image,
-                                   'text_colour': text_colour,
-                                   'background_colour': background_colour})
+                return render(request, 'experimentApp/experimentQuestion.html',
+                              {'experiment_type': experiment_type, 'question_type': experiment.question_type,
+                               'question': question,
+                               'rating_list': rating_set,
+                               'experiment_slug': experiment_slug, 'groundTruth': groundTruth,
+                               'question_error_message': error_message,
+                               'select_choice': rating_set[0].select_choice,
+                               'range_lower_bound': rating_set[0].range_lower_bound,
+                               'range_upper_bound': rating_set[0].range_upper_bound,
+                               'num_radio_choices': num_radio_choices,
+                               'time_shown': time_shown,
+                               'rf_colour': custom_colour,
+                               'rf_image': custom_image,
+                               'text_colour': text_colour,
+                               'background_colour': background_colour})
 
 
 # View to control storing user's choice for experiment question in database
@@ -771,9 +725,6 @@ def vote(request, experiment_slug, question_num):
             request.session['question_error_message'] = "You didn't select a choice."
             return HttpResponseRedirect(
                 reverse('experimentApp:experimentQuestion', args=(experiment_slug, question.question_num)))
-            # return render(request, 'experimentApp/experimentQuestion.html',
-            #               {'question_type': experiment.question_type, 'question': question, 'choice_set': choice_set,
-            #               'experiment_id': experiment_id, 'error_message': "You didn't select a choice."})
 
         else:
             # Attempt to check if user has registered for this experiment
@@ -903,7 +854,6 @@ def experimentFinish(request, experiment_slug):
 # Admin view to manipulate experiment results to be saved as .csv
 @login_required
 def resultsDownload(request, experiment_slug):
-
     # Get experiment associated with given slug
     experiment = get_object_or_404(ExperimentSlug, slug=experiment_slug).experiment
 
